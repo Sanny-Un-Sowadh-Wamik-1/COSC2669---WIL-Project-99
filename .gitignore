@@ -1,0 +1,4 @@
+external/walert/
+.DS_Store
+__pycache__/
+.env
