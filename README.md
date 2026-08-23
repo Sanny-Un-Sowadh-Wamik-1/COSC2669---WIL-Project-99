@@ -1,42 +1,50 @@
-# COSC2669 – WIL Project 99
+can someone commit this in git hub new readme version : # COSC2669 WIL Project 99
 
 ## Group ID
-**99**
 
-## Project Aim Statement
-> _[One sentence pitching your Test-Driven RAG project — e.g. "A retrieval-augmented question-answering system that helps ___ users quickly find accurate answers from ___ using an evaluation framework focused on ___."]_
+*99*
 
-## Links
-- **Trello board:** https://trello.com/b/6ovWpGaa/cosc2669-wil-project-99
-- **GitHub repo:** https://github.com/Sanny-Un-Sowadh-Wamik-1/COSC2669---WIL-Project-99
+## Project Links
+
+•⁠  ⁠*Trello:* https://trello.com/b/6ovWpGaa/cosc2669-wil-project-99
+•⁠  ⁠*GitHub:* https://github.com/Sanny-Un-Sowadh-Wamik-1/COSC2669---WIL-Project-99
+•⁠  ⁠*Walert Repository:* https://github.com/rmit-ir/walert
+
+## Tentative Project Aim
+
+To develop and quantitatively evaluate a Test-Driven Retrieval-Augmented Generation (RAG) system for a selected domain, using Walert as an initial reproducible baseline.
+
+	⁠The domain-specific aim will be updated once the team confirms the final project topic.
 
 ## Group Members
 
-| Student ID | Full Name | Role(s) / Skills / Strengths | % Contribution |
-|---|---|---|---|
-| s4130359 | Sanny Un Sowadh Wamik | _[e.g. Project lead, backend/RAG pipeline]_ | _[%]_ |
-| _[ID]_ | Haswanth Lagadapati | _[Role/Skills]_ | _[%]_ |
-| _[ID]_ | Vivan Marwah | _[Role/Skills]_ | _[%]_ |
-| _[ID]_ | Twaritha Yepuri | _[Role/Skills]_ | _[%]_ |
+| Student ID | Name | Milestone 1 Responsibility |
+|---|---|---|
+| s4130359 | Sanny Un Sowadh Wamik | Issues and bottlenecks |
+| s4089296 | Haswanth Lagadapati | Walert reproduction and evaluation evidence |
+| s4092642 | Vivan Marwah | Progress so far |
+| TBC | Twaritha Yepuri | Project aim, three-week plan and Walert evidence |
 
-## Project Overview
-This project implements a **Test-Driven Retrieval-Augmented Generation (RAG)** solution as part of the COSC2669 Work-Integrated Learning (WIL) course. The team is reproducing and building on the [Walert](https://github.com/rmit-ir/walert) RAG pipeline, applying it to a chosen domain and knowledge base, with a robust evaluation framework covering effectiveness (and optionally fairness, faithfulness, and source correctness).
+	⁠Remaining student IDs will be added before submission.
+
+## Milestone 1 Progress
+
+For Milestone 1, the team began by reproducing and inspecting the supplied Walert retrieval evaluation as preliminary project work.
+
+The current reproduction work includes:
+
+•⁠  ⁠validation of the Walert evaluation environment;
+•⁠  ⁠inspection of a single existing Walert query and its retrieved passages;
+•⁠  ⁠batch retrieval evaluation for Walert's Known question set; and
+•⁠  ⁠batch retrieval evaluation for Walert's Inferred question set.
+
+The reproduction uses Walert's supplied relevance judgments, stored retrieval runs and original evaluation script. The Group 99 helper scripts do not reimplement Walert's evaluation metrics.
 
 ## Repository Structure
-```
-.
-├── data/           # Knowledge base / source documents
-├── src/            # RAG pipeline code (retrieval, generation, evaluation)
-├── notebooks/       # Exploratory / evaluation notebooks
-├── docs/            # Reports, milestone submissions
-└── README.md
-```
-_(Update this to match your actual repo layout.)_
 
-## Getting Started
-_[Add setup instructions — dependencies, how to run the pipeline, how to reproduce the Walert baseline, etc.]_
-
-## Milestone Status
-- [ ] Milestone 1: Team setup, Trello + GitHub links, project aim, progress so far, next steps
-- [ ] Milestone 2: _TBC_
-- [ ] Final submission: _TBC_
+⁠ text
+COSC2669---WIL-Project-99/
+├── README.md
+├── .gitignore
+└── milestone1/
+    └── walert_reproduction/
