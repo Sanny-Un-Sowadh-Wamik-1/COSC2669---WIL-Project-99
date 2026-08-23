@@ -1,5 +1,3 @@
-can someone commit this in git hub new readme version : # COSC2669 WIL Project 99
-
 ## Group ID
 
 *99*
