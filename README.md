@@ -23,9 +23,7 @@ To develop and quantitatively evaluate a Test-Driven Retrieval-Augmented Generat
 | s4130359 | Sanny Un Sowadh Wamik | Issues and bottlenecks |
 | s4089296 | Haswanth Lagadapati | Walert reproduction and evaluation evidence |
 | s4092642 | Vivan Marwah | Progress so far |
-| TBC | Twaritha Yepuri | Project aim, three-week plan and Walert evidence |
-
-	⁠Remaining student IDs will be added before submission.
+| s4021994 | Twaritha Yepuri | Project aim, three-week plan and Walert evidence |
 
 ## Milestone 1 Progress
 
@@ -48,3 +46,13 @@ COSC2669---WIL-Project-99/
 ├── .gitignore
 └── milestone1/
     └── walert_reproduction/
+        ├── single_query_check.py
+        ├── run_batch_evaluation.py
+        └── evidence/
+            ├── A1_environment.png
+            ├── A2_single_query.png
+            ├── A3a_known_evaluation.png
+            └── A3b_inferred_evaluation.png
+ ⁠
+
+The original Walert repository is used locally under ⁠ external/walert/ ⁠ and is excluded from the Group 99 GitHub repository through ⁠ .gitignore ⁠.
