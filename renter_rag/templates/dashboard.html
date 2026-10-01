@@ -1,147 +1,169 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · Renter Rights Assistant{% endblock %}
+
+{% macro pct(v) %}{{ '–' if v is none else (v ~ '%') }}{% endmacro %}
+{% macro bar(label, value, cls='', max=100, suffix='%') %}
+<div class="bar-row"><span>{{ label }}</span>
+  <div class="bar-track {{ cls }}"><span style="width:{{ 0 if value is none else [100, (value / max * 100)]|min }}%"></span></div>
+  <span class="num">{{ '–' if value is none else (value ~ suffix) }}</span></div>
+{% endmacro %}
+
 {% block main %}
 <h1>Evaluation dashboard</h1>
+
 {% if not s %}
-<div class="panel" style="margin-top:0">
-  <strong>Answer-quality results are not ready yet.</strong>
-  {% if progress %}<span class="muted">run_eval.py progress: {{ progress }}. Reload this page when it finishes.</span>
-  {% else %}<span class="muted">Run <code>python run_eval.py</code> to produce them.</span>{% endif %}
+<div class="banner">
+  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="var(--accent)" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 5v5.4l4 2.3-.8 1.4-4.9-2.8V7z"/></svg>
+  <div class="progress"><strong>Answer-quality results are being computed.</strong>
+    <span class="muted">{% if progress %}Evaluation progress: {{ progress }}. Reload when it finishes.{% else %}Run <code>python run_eval.py</code> to produce them.{% endif %}</span></div>
 </div>
-{% if retrieval %}<h2>Retrieval comparison (DEV, answerable questions)</h2>
-{% if choice %}{% set b, c = choice.test[0], choice.test[1] %}
-<div class="tiles">
-  <div class="tile"><div class="v">{{ c['hit@5'] }}</div><div class="k">hit@5, chosen (test) · v1 BM25: {{ b['hit@5'] }}</div></div>
-  <div class="tile"><div class="v">{{ c['ndcg@5'] }}</div><div class="k">nDCG@5, chosen (test) · v1 BM25: {{ b['ndcg@5'] }}</div></div>
-  <div class="tile"><div class="v">{{ c.mrr }}</div><div class="k">MRR, chosen (test) · v1 BM25: {{ b.mrr }}</div></div>
-  <div class="tile"><div class="v">{{ c['recall@5'] }}</div><div class="k">recall@5, chosen (test) · v1 BM25: {{ b['recall@5'] }}</div></div>
-</div>
-<p class="muted">Chosen on DEV: {{ choice.chosen.chunking }} chunks, {{ choice.chosen.retriever }} retrieval with {{ choice.chosen.embed_model }},
-tenure filter {{ 'on' if choice.chosen.tenure_filter else 'off' }}. Test numbers are from one run with that setup fixed.</p>
 {% endif %}
-<details><summary>All {{ retrieval|length }} configurations</summary>
-<div class="scroll"><table>
-  <tr><th>Chunking</th><th>Retriever</th><th>Embedding</th><th>Tenure filter</th><th class="num">hit@1</th><th class="num">hit@5</th><th class="num">recall@5</th><th class="num">MRR</th><th class="num">nDCG@5</th><th class="num">nDCG@10</th></tr>
-  {% for r in retrieval %}
-  <tr class="{{ 'best' if loop.first }}"><td>{{ r.chunking }}</td><td>{{ r.retriever }}</td><td>{{ r.embed_model }}</td><td>{{ 'on' if r.tenure_filter == 'True' else 'off' }}</td>
-    <td class="num">{{ r['hit@1'] }}</td><td class="num">{{ r['hit@5'] }}</td><td class="num">{{ r['recall@5'] }}</td><td class="num">{{ r.mrr }}</td><td class="num">{{ r['ndcg@5'] }}</td><td class="num">{{ r['ndcg@10'] }}</td></tr>
-  {% endfor %}
-</table></div>
-</details>
 
-{% else %}<p class="lead">No retrieval results yet either. Run <code>python run_retrieval.py</code>.</p>{% endif %}
-{% else %}
-{% set t = s.test %}{% set cb = s.closed_book_test %}
-<p class="lead">Held-out TEST set: {{ t.questions }} questions ({{ t.answerable }} answerable, {{ t.unanswerable }} unanswerable).
-Settings were chosen on the separate DEV set. LLM <code>{{ op.llm }}</code>, retriever <code>{{ op.retriever }}</code>
-({{ op.embed_model }}, {{ op.chunking }} chunks, top {{ op.top_k }}), confidence = <code>{{ op.confidence }}</code> ≥ {{ '%.3f'|format(op.threshold) }}.</p>
+{% if s %}{% set t = s.test %}{% set cb = s.closed_book_test %}
+<p class="lead">Held-out <strong>test set</strong>: {{ t.questions }} questions ({{ t.answerable }} answerable, {{ t.unanswerable }} that should be declined).
+All settings were chosen on the separate dev set. LLM <code>{{ op.llm }}</code>, {{ op.retriever }} retrieval with <code>{{ op.embed_model }}</code>,
+top {{ op.top_k }} sections, confidence <code>{{ op.confidence }}</code> ≥ {{ '%.3f'|format(op.threshold) }}.</p>
+<nav class="jump"><a href="#overview">Overview</a><a href="#baseline">RAG vs no RAG</a><a href="#slices">Fairness</a><a href="#errors">Errors</a>
+  <a href="#threshold">Threshold</a><a href="#retrieval">Retrieval</a><a href="#questions">Every question</a></nav>
 
+<section class="section" id="overview">
 <div class="tiles">
-  <div class="tile"><div class="v">{{ t.answer_rate }}%</div><div class="k">Answer rate (answerable questions)</div></div>
-  <div class="tile"><div class="v">{{ t.accuracy_on_answered }}%</div><div class="k">Accuracy on answered (all key facts)</div></div>
-  <div class="tile"><div class="v">{{ t.correct_abstention_rate }}%</div><div class="k">Correct abstention (unanswerable)</div></div>
-  <div class="tile"><div class="v">{{ t.false_refusal_rate }}%</div><div class="k">False refusal rate</div></div>
-  <div class="tile"><div class="v">{{ t.avg_sources_per_answer }}</div><div class="k">Average sources per answer</div></div>
-  <div class="tile"><div class="v">{{ '%.2f'|format(t.avg_confidence_answered) }}</div><div class="k">Average confidence when answering</div></div>
+  <div class="tile"><div class="v">{{ pct(t.answer_rate) }}</div><div class="k">Answer rate</div><div class="meter"><span style="width:{{ t.answer_rate or 0 }}%"></span></div><div class="hint">of answerable questions</div></div>
+  <div class="tile"><div class="v">{{ pct(t.accuracy_on_answered) }}</div><div class="k">Accuracy on answered</div><div class="meter ok"><span style="width:{{ t.accuracy_on_answered or 0 }}%"></span></div><div class="hint">all key facts present{% if t.partly_correct_on_answered %} · {{ t.partly_correct_on_answered }}% partly{% endif %}</div></div>
+  <div class="tile"><div class="v">{{ pct(t.correct_abstention_rate) }}</div><div class="k">Correct abstention</div><div class="meter ok"><span style="width:{{ t.correct_abstention_rate or 0 }}%"></span></div><div class="hint">declined when it should</div></div>
+  <div class="tile"><div class="v">{{ pct(t.false_refusal_rate) }}</div><div class="k">False refusal rate</div><div class="meter warn"><span style="width:{{ t.false_refusal_rate or 0 }}%"></span></div><div class="hint">answerable but declined</div></div>
+  <div class="tile"><div class="v">{{ t.avg_sources_per_answer }}</div><div class="k">Sources per answer</div><div class="hint">source accuracy {{ pct(t.source_accuracy) }}</div></div>
+  <div class="tile"><div class="v">{{ '%.2f'|format(t.avg_confidence_answered) }}</div><div class="k">Avg confidence (answered)</div><div class="hint">{{ op.confidence }}</div></div>
 </div>
+</section>
 
-<h2>RAG vs the same LLM without retrieval</h2>
-<div class="scroll"><table>
-  <tr><th></th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th><th class="num">Sources per answer</th></tr>
-  <tr class="best"><td>RAG (this system)</td><td class="num">{{ t.answer_rate }}%</td><td class="num">{{ t.accuracy_on_answered }}%</td><td class="num">{{ t.correct_abstention_rate }}%</td><td class="num">{{ t.avg_sources_per_answer }}</td></tr>
-  <tr><td>LLM only, no retrieval</td><td class="num">{{ cb.answer_rate }}%</td><td class="num">{{ cb.accuracy_on_answered }}%</td><td class="num">{{ cb.correct_abstention_rate }}%</td><td class="num">0</td></tr>
-</table></div>
+<section class="section" id="baseline">
+<div class="section-head"><h2>Does retrieval help? RAG vs the same LLM without retrieval</h2></div>
+<div class="card compare">
+  <div class="legend"><span><i style="background:var(--accent)"></i>RAG (this system)</span><span><i style="background:var(--faint)"></i>LLM only</span></div>
+  <div class="grid-2">
+    <div><h3>Accuracy on answered</h3><div class="bars">{{ bar('RAG', t.accuracy_on_answered) }}{{ bar('LLM only', cb.accuracy_on_answered, 'alt') }}</div></div>
+    <div><h3>Correct abstention on unanswerable</h3><div class="bars">{{ bar('RAG', t.correct_abstention_rate) }}{{ bar('LLM only', cb.correct_abstention_rate, 'alt') }}</div></div>
+    <div><h3>Answer rate</h3><div class="bars">{{ bar('RAG', t.answer_rate) }}{{ bar('LLM only', cb.answer_rate, 'alt') }}</div></div>
+    <div><h3>Sources per answer</h3><div class="bars">{{ bar('RAG', t.avg_sources_per_answer, '', 3, '') }}{{ bar('LLM only', 0, 'alt', 3, '') }}</div></div>
+  </div>
+</div>
+</section>
 
-<h2>Results by question group and wording</h2>
-<div class="scroll"><table>
-  <tr><th>Slice</th><th class="num">Questions</th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th></tr>
+<section class="section" id="slices">
+<div class="section-head"><h2>By question group and wording</h2><span class="muted small">Legal and slang questions reword the same plain questions. A gap between them is a fairness problem.</span></div>
+<div class="card scroll"><table>
+  <thead><tr><th>Slice</th><th class="num">Questions</th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th></tr></thead>
+  <tbody>
   {% for g, v in s.test_by_group.items() %}
-  <tr><td>group: {{ g.replace('_', ' ') }}</td><td class="num">{{ v.questions }}</td><td class="num">{{ v.answer_rate if v.answer_rate is not none else '–' }}{{ '%' if v.answer_rate is not none }}</td>
-      <td class="num">{{ v.accuracy_on_answered if v.accuracy_on_answered is not none else '–' }}{{ '%' if v.accuracy_on_answered is not none }}</td>
-      <td class="num">{{ v.correct_abstention_rate if v.correct_abstention_rate is not none else '–' }}{{ '%' if v.correct_abstention_rate is not none }}</td></tr>
+  <tr><td><span class="pill neutral">group</span> {{ g.replace('_', ' ') }}</td><td class="num">{{ v.questions }}</td><td class="num">{{ pct(v.answer_rate) }}</td><td class="num">{{ pct(v.accuracy_on_answered) }}</td><td class="num">{{ pct(v.correct_abstention_rate) }}</td></tr>
   {% endfor %}
   {% for g, v in s.test_by_style.items() %}
-  <tr><td>wording: {{ g }}</td><td class="num">{{ v.questions }}</td><td class="num">{{ v.answer_rate }}%</td>
-      <td class="num">{{ v.accuracy_on_answered if v.accuracy_on_answered is not none else '–' }}{{ '%' if v.accuracy_on_answered is not none }}</td><td class="num">–</td></tr>
+  <tr><td><span class="pill law">wording</span> {{ g }}</td><td class="num">{{ v.questions }}</td><td class="num">{{ pct(v.answer_rate) }}</td><td class="num">{{ pct(v.accuracy_on_answered) }}</td><td class="num">–</td></tr>
   {% endfor %}
+  </tbody>
 </table></div>
-<p class="muted">Legal and slang questions reword the same plain questions, so a gap between those rows is a fairness problem.</p>
+</section>
 
-<h2>Why answers went wrong (error analysis, TEST)</h2>
-<div class="scroll"><table>
-  <tr><th>Cause</th><th class="num">Questions</th></tr>
-  {% for k, v in s.errors_test.items() %}<tr><td>{{ k }}</td><td class="num">{{ v }}</td></tr>{% else %}<tr><td colspan="2">No errors.</td></tr>{% endfor %}
-</table></div>
-
-<h2>Abstention threshold (DEV)</h2>
-<p class="muted">Raising the threshold removes wrong answers but also refuses more answerable questions. Chosen point: best utility
-(correct +1, wrong −1, refusal 0; unanswerable: refusal +1, answer −1). Dev at that point: answer rate {{ s.dev_point.answer_rate }}%,
-accuracy {{ s.dev_point.accuracy_on_answered }}%, correct abstention {{ s.dev_point.correct_abstention_rate }}%.</p>
-<img class="chart" src="/results/threshold_curve_dev.png" alt="Answer rate, accuracy and abstention against threshold on the dev set" loading="lazy" width="840" height="480">
-<h3 style="font-size:15px">Which confidence signal separates answerable from unanswerable? (AUROC on DEV, 1.0 = perfect)</h3>
-<div class="scroll"><table>
-  <tr>{% for k in s.signal_auroc_dev %}<th class="num">{{ k }}</th>{% endfor %}</tr>
-  <tr>{% for v in s.signal_auroc_dev.values() %}<td class="num">{{ v }}</td>{% endfor %}</tr>
-</table></div>
-<h3 style="font-size:15px">LLMs compared on DEV (best threshold for each)</h3>
-<div class="scroll"><table>
-  <tr><th>LLM</th><th class="num">Utility</th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th></tr>
-  {% for m, curve in s.dev_curves.items() %}{% set b = curve|sort(attribute='utility')|last %}
-  <tr class="{{ 'best' if m == op.llm }}"><td>{{ m }}</td><td class="num">{{ b.utility }}</td><td class="num">{{ b.answer_rate }}%</td><td class="num">{{ b.accuracy_on_answered }}%</td><td class="num">{{ b.correct_abstention_rate }}%</td></tr>
-  {% endfor %}
-</table></div>
-
-<h2>Retrieval comparison (DEV, answerable questions)</h2>
-{% if choice %}{% set b, c = choice.test[0], choice.test[1] %}
-<div class="tiles">
-  <div class="tile"><div class="v">{{ c['hit@5'] }}</div><div class="k">hit@5, chosen (test) · v1 BM25: {{ b['hit@5'] }}</div></div>
-  <div class="tile"><div class="v">{{ c['ndcg@5'] }}</div><div class="k">nDCG@5, chosen (test) · v1 BM25: {{ b['ndcg@5'] }}</div></div>
-  <div class="tile"><div class="v">{{ c.mrr }}</div><div class="k">MRR, chosen (test) · v1 BM25: {{ b.mrr }}</div></div>
-  <div class="tile"><div class="v">{{ c['recall@5'] }}</div><div class="k">recall@5, chosen (test) · v1 BM25: {{ b['recall@5'] }}</div></div>
+<section class="section" id="errors">
+<div class="section-head"><h2>Why answers went wrong</h2><span class="muted small">Each failed test question is put in one category.</span></div>
+<div class="card">
+  {% set total = s.errors_test.values()|sum %}
+  <div class="bars">
+  {% for k, v in s.errors_test.items() %}{{ bar(k, v, 'bad', [total, 1]|max, '') }}{% else %}<p class="muted">No errors.</p>{% endfor %}
+  </div>
 </div>
-<p class="muted">Chosen on DEV: {{ choice.chosen.chunking }} chunks, {{ choice.chosen.retriever }} retrieval with {{ choice.chosen.embed_model }},
-tenure filter {{ 'on' if choice.chosen.tenure_filter else 'off' }}. Test numbers are from one run with that setup fixed.</p>
+</section>
+
+<section class="section" id="threshold">
+<div class="section-head"><h2>Choosing the abstention threshold (dev set)</h2></div>
+<div class="card">
+  <p class="muted small" style="margin-top:0">A higher threshold gives fewer wrong answers but more refusals. The dashed line marks the point with the best utility
+  (correct +1, wrong −1, refusal 0; unanswerable: refusal +1, answer −1). At that point on dev: answer rate {{ pct(s.dev_point.answer_rate) }},
+  accuracy {{ pct(s.dev_point.accuracy_on_answered) }}, correct abstention {{ pct(s.dev_point.correct_abstention_rate) }}.</p>
+  {% if chart %}
+  <div class="legend">{% for se in chart.series %}<span><i style="background:var(--{{ se.cls }})"></i>{{ se.label }}</span>{% endfor %}</div>
+  <div class="chart"><svg viewBox="0 0 {{ chart.w }} {{ chart.h }}" role="img" aria-label="Threshold sweep on the dev set">
+    {% for g in chart.grid %}<line class="gridline" x1="{{ chart.x0 }}" x2="{{ chart.x1 }}" y1="{{ g.y }}" y2="{{ g.y }}"/><text class="axis-label" x="{{ chart.x0 - 6 }}" y="{{ g.y + 4 }}" text-anchor="end">{{ g.label }}</text>{% endfor %}
+    {% for tk in chart.ticks %}<text class="axis-label" x="{{ tk.x }}" y="{{ chart.y1 + 18 }}" text-anchor="middle">{{ tk.label }}</text>{% endfor %}
+    {% for se in chart.series %}<polyline class="{{ se.cls }}" points="{{ se.points }}"/>{% endfor %}
+    <line class="chosen" x1="{{ chart.chosen_x }}" x2="{{ chart.chosen_x }}" y1="8" y2="{{ chart.y1 }}"/>
+    <text class="chosen-label" x="{{ chart.chosen_x + 5 }}" y="20">chosen {{ '%.3f'|format(op.threshold) }}</text>
+  </svg></div>
+  <p class="muted small">x-axis: confidence threshold ({{ op.confidence }}) · y-axis: %</p>
+  {% endif %}
+  <div class="grid-2" style="margin-top:8px">
+    <div><h3>Which confidence signal works best? (AUROC, dev)</h3>
+      <p class="muted small" style="margin-top:0">How well each signal separates answerable from unanswerable questions. 0.5 = chance, 1.0 = perfect.</p>
+      <div class="bars">{% for k, v in s.signal_auroc_dev.items()|sort(attribute='1', reverse=True) %}{{ bar(k, v, 'ok' if k == op.confidence else 'alt', 1, '') }}{% endfor %}</div></div>
+    <div><h3>LLMs compared (dev, each at its best threshold)</h3>
+      <div class="scroll"><table><thead><tr><th>LLM</th><th class="num">Utility</th><th class="num">Answer rate</th><th class="num">Accuracy</th><th class="num">Abstention</th></tr></thead><tbody>
+      {% for m, b in best_per_llm.items() %}
+      <tr class="{{ 'best' if m == op.llm }}"><td>{{ m }}</td><td class="num">{{ b.utility }}</td><td class="num">{{ pct(b.answer_rate) }}</td><td class="num">{{ pct(b.accuracy_on_answered) }}</td><td class="num">{{ pct(b.correct_abstention_rate) }}</td></tr>
+      {% endfor %}</tbody></table></div></div>
+  </div>
+</div>
+</section>
 {% endif %}
-<details><summary>All {{ retrieval|length }} configurations</summary>
-<div class="scroll"><table>
-  <tr><th>Chunking</th><th>Retriever</th><th>Embedding</th><th>Tenure filter</th><th class="num">hit@1</th><th class="num">hit@5</th><th class="num">recall@5</th><th class="num">MRR</th><th class="num">nDCG@5</th><th class="num">nDCG@10</th></tr>
-  {% for r in retrieval %}
+
+<section class="section" id="retrieval">
+<div class="section-head"><h2>Retrieval: does it find the right law?</h2></div>
+{% if choice %}{% set b = choice.test[0] %}{% set c = choice.test[1] %}
+<div class="card">
+  <p class="muted small" style="margin-top:0">Chosen on dev: <strong>{{ choice.chosen.chunking }}</strong> chunks, <strong>{{ choice.chosen.retriever }}</strong> retrieval with
+  <code>{{ choice.chosen.embed_model }}</code>, tenure filter {{ 'on' if choice.chosen.tenure_filter else 'off' }}. Measured once on the held-out test set against the v1 BM25 baseline.</p>
+  <div class="legend"><span><i style="background:var(--accent)"></i>chosen</span><span><i style="background:var(--faint)"></i>v1 BM25 baseline</span></div>
+  <div class="grid-2">
+    <div><h3>hit@5: right section in the top 5</h3><div class="bars">{{ bar('chosen', c['hit@5'], '', 1, '') }}{{ bar('v1 BM25', b['hit@5'], 'alt', 1, '') }}</div></div>
+    <div><h3>nDCG@5: ranking quality</h3><div class="bars">{{ bar('chosen', c['ndcg@5'], '', 1, '') }}{{ bar('v1 BM25', b['ndcg@5'], 'alt', 1, '') }}</div></div>
+    <div><h3>MRR: rank of the first relevant section</h3><div class="bars">{{ bar('chosen', c.mrr, '', 1, '') }}{{ bar('v1 BM25', b.mrr, 'alt', 1, '') }}</div></div>
+    <div><h3>recall@5: gold sections found</h3><div class="bars">{{ bar('chosen', c['recall@5'], '', 1, '') }}{{ bar('v1 BM25', b['recall@5'], 'alt', 1, '') }}</div></div>
+  </div>
+</div>
+{% endif %}
+{% if retrieval %}
+<details class="card" style="margin-top:12px"><summary><strong>All {{ retrieval|length }} configurations tried on dev</strong> <span class="muted small">sorted by nDCG@5</span></summary>
+<div class="scroll" style="margin-top:10px"><table>
+  <thead><tr><th>Chunking</th><th>Retriever</th><th>Embedding</th><th>Tenure filter</th><th class="num">hit@1</th><th class="num">hit@5</th><th class="num">recall@5</th><th class="num">MRR</th><th class="num">nDCG@5</th><th class="num">nDCG@10</th></tr></thead>
+  <tbody>{% for r in retrieval %}
   <tr class="{{ 'best' if loop.first }}"><td>{{ r.chunking }}</td><td>{{ r.retriever }}</td><td>{{ r.embed_model }}</td><td>{{ 'on' if r.tenure_filter == 'True' else 'off' }}</td>
     <td class="num">{{ r['hit@1'] }}</td><td class="num">{{ r['hit@5'] }}</td><td class="num">{{ r['recall@5'] }}</td><td class="num">{{ r.mrr }}</td><td class="num">{{ r['ndcg@5'] }}</td><td class="num">{{ r['ndcg@10'] }}</td></tr>
-  {% endfor %}
-</table></div>
-</details>
+  {% endfor %}</tbody>
+</table></div></details>
+{% else %}<p class="muted">No retrieval results yet. Run <code>python run_retrieval.py</code>.</p>{% endif %}
+</section>
 
-
-<h2 id="questions">Every test question</h2>
+{% if s %}
+<section class="section" id="questions">
+<div class="section-head"><h2>Every test question</h2></div>
 <form class="filters" method="get" action="/dashboard#questions">
-  <label>Group <select name="group">
+  <label class="small">Group <select name="group" onchange="this.form.submit()">
     <option value="">all</option>
     {% for g in ['answerable', 'near_miss', 'off_topic'] %}<option value="{{ g }}" {{ 'selected' if g == group }}>{{ g.replace('_', ' ') }}</option>{% endfor %}
   </select></label>
-  <label>Outcome <select name="label">
+  <label class="small">Outcome <select name="label" onchange="this.form.submit()">
     <option value="">all</option>
     {% for l in ['correct', 'partly correct', 'incorrect', 'false refusal', 'correct abstention', 'wrongly answered'] %}<option value="{{ l }}" {{ 'selected' if l == label }}>{{ l }}</option>{% endfor %}
   </select></label>
-  <button type="submit">Filter</button>
-  <span class="muted">{{ rows|length }} of {{ all_rows|length }}</span>
+  <noscript><button class="btn ghost" type="submit">Filter</button></noscript>
+  <span class="muted small">showing {{ rows|length }} of {{ all_rows|length }}</span>
 </form>
-<div class="scroll"><table>
-  <tr><th>ID</th><th>Question and answer</th><th>Outcome</th><th class="num">Conf.</th></tr>
-  {% for r in rows %}
+<div class="card scroll qtable" style="padding:0"><table>
+  <thead><tr><th>ID</th><th>Question · click for the answer, sources and baseline</th><th>Outcome</th><th class="num">Conf.</th></tr></thead>
+  <tbody>{% for r in rows %}
   <tr>
-    <td>{{ r.qid }}</td>
+    <td class="muted">{{ r.qid }}</td>
     <td><details><summary>{{ r.question }}</summary><div class="body">
-      <div><strong>Answer:</strong> {{ r.answer or '(not answered: ' ~ r.reason ~ ')' }}</div>
-      {% if r.sources %}<div><strong>Sources:</strong> {{ r.sources }}</div>{% endif %}
-      {% if r.reference %}<div><strong>Reference:</strong> {{ r.reference }} <span class="muted">(gold: {{ r.gold }})</span></div>{% endif %}
-      {% if r.error %}<div><strong>Error type:</strong> {{ r.error }}</div>{% endif %}
-      <div><strong>LLM without retrieval said:</strong> {{ r.closed_book_answer }}</div>
+      <div><b>Answer</b> · {{ r.answer or '(declined: ' ~ r.reason ~ ')' }}</div>
+      {% if r.sources %}<div><b>Cited</b> · {{ r.sources }}</div>{% endif %}
+      {% if r.reference %}<div><b>Reference</b> · {{ r.reference }} <span class="muted">(gold: {{ r.gold }})</span></div>{% endif %}
+      {% if r.error %}<div><b>Error type</b> · {{ r.error }}</div>{% endif %}
+      <div><b>LLM without retrieval</b> · {{ r.closed_book_answer }}</div>
     </div></details></td>
-    <td><span class="tag {{ 'ok' if r.label in ['correct', 'correct abstention'] else ('warn' if r.label in ['partly correct', 'false refusal'] else 'bad') }}">{{ r.label }}</span></td>
+    <td><span class="pill {{ 'ok' if r.label in ['correct', 'correct abstention'] else ('warn' if r.label in ['partly correct', 'false refusal'] else 'bad') }}">{{ r.label }}</span></td>
     <td class="num">{{ r.confidence }}</td>
-  </tr>
-  {% endfor %}
+  </tr>{% endfor %}</tbody>
 </table></div>
+</section>
 {% endif %}
 {% endblock %}

@@ -3,26 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{% block title %}Renter Rights Assistant{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231f4fd1'/%3E%3Cpath d='M5 11.5 12 6l7 5.5V18a1 1 0 0 1-1 1h-3.5v-4h-5v4H6a1 1 0 0 1-1-1z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ css_version }}">
 </head>
 <body>
-<header>
-  <div class="bar">
-    <strong>Victorian Renter Rights Assistant</strong>
-    <nav>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="var(--accent)"/><path d="M5 11.5 12 6l7 5.5V18a1 1 0 0 1-1 1h-3.5v-4h-5v4H6a1 1 0 0 1-1-1z" fill="var(--accent-text)"/></svg>
+      <span>Renter Rights Assistant<small>Victorian renting law, with sources</small></span>
+    </a>
+    <nav class="nav">
       <a href="/" class="{{ 'on' if page == 'ask' }}">Ask</a>
       <a href="/dashboard" class="{{ 'on' if page == 'dashboard' }}">Dashboard</a>
-      <a href="/about" class="{{ 'on' if page == 'about' }}">About &amp; limits</a>
+      <a href="/about" class="{{ 'on' if page == 'about' }}">About</a>
     </nav>
   </div>
 </header>
-<div class="disclaimer"><div>
-  <strong>General information, not legal advice.</strong> Answers come only from the Residential Tenancies Act 1997 (Vic),
-  its regulations and Consumer Affairs Victoria guidance, and may be incomplete or wrong. Check the cited source, and for your
-  situation contact Consumer Affairs Victoria (1300 55 81 81), Tenants Victoria or a lawyer.
+<div class="notice"><div class="wrap">
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z"/></svg>
+  <span><strong>General information, not legal advice.</strong> Answers come only from the Residential Tenancies Act 1997 (Vic),
+  its regulations and Consumer Affairs Victoria guidance, and can be incomplete or wrong. Check the cited source. For your situation,
+  contact Consumer Affairs Victoria (1300 55 81 81), Tenants Victoria or a lawyer.</span>
 </div></div>
-<main>{% block main %}{% endblock %}</main>
-<footer>COSC2669 WIL Project · Group 99 · runs locally with Ollama, no data leaves this computer.</footer>
+<main><div class="wrap">{% block main %}{% endblock %}</div></main>
+<footer><div class="wrap">COSC2669 WIL Project · Group 99 · Runs locally with Ollama: questions never leave this computer.</div></footer>
 </body>
 </html>

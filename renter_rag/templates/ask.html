@@ -1,84 +1,130 @@
 {% extends "base.html" %}
 {% block main %}
 <h1>Ask about renting in Victoria</h1>
-<p class="lead">Rent, bonds, repairs, entry, pets, notices to vacate, minimum standards, disputes. Every answer cites the section it came from.</p>
+<p class="lead">Rent, bonds, repairs, entry, pets, notices to vacate, minimum standards, disputes. Every answer cites the section of the
+law or guidance it came from, and the assistant says when it doesn't know.</p>
 
-<form id="ask">
-  <textarea id="q" name="q" maxlength="500" placeholder="e.g. How much notice do I get before a rent increase?" required></textarea>
-  <div class="row">
-    <button id="go" type="submit">Ask</button>
-    <span id="status" class="muted"></span>
+<form id="ask" class="card ask-box" autocomplete="off">
+  <label for="q" class="muted small">Your question</label>
+  <textarea id="q" maxlength="500" placeholder="e.g. How much notice do I get before a rent increase?" required autofocus></textarea>
+  <div class="ask-actions">
+    <button id="go" class="btn" type="submit">Ask</button>
+    <span class="kbd">Enter to ask · Shift+Enter for a new line</span>
+    <span id="status" class="muted small" role="status" aria-live="polite"></span>
   </div>
-  <div class="examples">
-    {% for e in examples %}<button type="button" data-q="{{ e }}">{{ e }}</button>{% endfor %}
+  <div class="chips">
+    {% for e in examples %}<button type="button" class="chip" data-q="{{ e }}">{{ e }}</button>{% endfor %}
   </div>
 </form>
 
-<div id="result" class="panel" hidden>
-  <div class="row" style="margin-top:0"><span id="badge" class="tag"></span><span id="conf" class="muted"></span></div>
+<section id="result" class="card result" hidden aria-live="polite">
+  <div class="result-head"><span id="badge" class="pill neutral"></span></div>
   <p id="answer" class="answer"></p>
-  <div id="sources-wrap" hidden>
-    <h2 style="margin-top:12px">Sources cited</h2>
-    <div id="sources"></div>
-  </div>
-  <details id="retrieved-wrap" hidden>
-    <summary class="muted">What the system retrieved</summary>
-    <div id="retrieved" class="body"></div>
+  <div id="meta" class="meta-line"></div>
+</section>
+
+<section id="sources-wrap" class="section" hidden>
+  <div class="section-head"><h2 id="sources-title">Sources</h2><span id="sources-note" class="muted small"></span></div>
+  <div id="sources" class="sources"></div>
+  <details id="others-wrap" hidden style="margin-top:12px">
+    <summary class="muted small" id="others-title">Other passages checked</summary>
+    <div id="others" class="sources"></div>
   </details>
-</div>
+</section>
 
 <script>
-const $ = id => document.getElementById(id);
-const REASONS = {
-  "other jurisdiction": "Not answered: other state",
-  "off topic": "Not answered: outside renting in Victoria",
-  "low confidence": "Not answered: no strong match in the law",
-  "LLM said it doesn't know": "Not answered: sources don't cover it",
-  "no citation": "Not answered: answer could not be tied to a source",
-  "empty": "Not answered"
-};
-function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
-function sourceHtml(c, n) {
-  return `<div class="source"><div><strong>${n ? "[" + n + "] " : ""}${esc(c.citation)}</strong> — ${esc(c.heading)}</div>
-    <div class="meta">${esc(c.kind === "law" ? "Legislation" : "CAV guidance")} · ${esc(c.date)} · <a href="${encodeURI(c.url)}" target="_blank" rel="noopener">open source</a></div>
-    <div>${esc(c.text)}</div></div>`;
-}
-document.querySelectorAll(".examples button").forEach(b => b.onclick = () => { $("q").value = b.dataset.q; $("q").focus(); });
+(() => {
+  const $ = id => document.getElementById(id);
+  const REASONS = {
+    "other jurisdiction": "Not answered · other state",
+    "off topic": "Not answered · not about renting in Victoria",
+    "low confidence": "Not answered · no strong match in the law",
+    "LLM said it doesn't know": "Not answered · sources don't cover it",
+    "no citation": "Not answered · couldn't tie the answer to a source",
+    "empty": "Not answered"
+  };
+  const esc = s => s.replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+  const withCites = s => esc(s).replace(/\[(\d+)\]/g, (_, n) => `<a class="cite" href="#src-${n}" title="Source ${n}">${n}</a>`);
+  const kindClass = k => k === "CAV guide" ? "guide" : "law";
+  let retrieved = [];
 
-$("ask").onsubmit = async e => {
-  e.preventDefault();
-  const question = $("q").value.trim();
-  if (!question) return;
-  $("go").disabled = true; $("status").textContent = "Searching the law…";
-  $("result").hidden = false; $("answer").textContent = ""; $("badge").textContent = ""; $("badge").className = "tag";
-  $("conf").textContent = ""; $("sources-wrap").hidden = true; $("retrieved-wrap").hidden = true;
-  try {
-    const res = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({question})});
-    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
-    for (;;) {
-      const {value, done} = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, {stream: true});
-      let i;
-      while ((i = buf.indexOf("\n")) >= 0) {
-        const ev = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
-        if (ev.type === "meta" && ev.answered === null) $("status").textContent = "Writing the answer…";
-        if (ev.type === "token") $("answer").textContent += ev.text;
-        if (ev.type === "error") { $("answer").textContent = ev.message; $("badge").textContent = "Error"; $("badge").className = "tag bad"; }
-        if (ev.type === "done") {
-          $("answer").textContent = ev.answer;
-          $("badge").textContent = ev.answered ? "Answered" : (REASONS[ev.reason] || "Not answered");
-          $("badge").className = "tag " + (ev.answered ? "ok" : "warn");
-          if (ev.confidence !== null) $("conf").textContent = "confidence " + ev.confidence.toFixed(2);
-          if (ev.sources.length) { $("sources").innerHTML = ev.sources.map((c, k) => sourceHtml(c)).join(""); $("sources-wrap").hidden = false; }
-          if (ev.retrieved.length) { $("retrieved").innerHTML = ev.retrieved.map((c, k) => sourceHtml(c, k + 1)).join(""); $("retrieved-wrap").hidden = false; }
+  function card(c, n, cited) {
+    return `<article class="src${cited ? " cited" : ""}" id="src-${n}">
+      <div class="src-head"><span class="src-num">[${n}]</span><span class="pill ${kindClass(c.source)}">${esc(c.source)}</span>
+        <span class="src-title">${esc(c.citation)}</span>${cited ? '<span class="pill ok">cited</span>' : ""}</div>
+      <div class="src-sub">${esc(c.heading)} · ${esc(c.date)} · <a href="${encodeURI(c.url)}" target="_blank" rel="noopener">open original</a></div>
+      <p>${esc(c.text)}</p></article>`;
+  }
+  function showSources(list, cited, answered) {
+    if (!list.length) { $("sources-wrap").hidden = true; return; }
+    const main = [], rest = [];
+    list.forEach((c, i) => (answered === false || !cited || cited.includes(i + 1) ? main : rest).push(card(c, i + 1, cited && cited.includes(i + 1))));
+    $("sources").innerHTML = main.join("");
+    $("others").innerHTML = rest.join("");
+    $("others-wrap").hidden = !rest.length;
+    $("others-title").textContent = `${rest.length} other passage${rest.length === 1 ? "" : "s"} checked but not used`;
+    $("sources-title").textContent = answered === false ? "Closest passages found" : cited ? "Sources cited" : "Passages found";
+    $("sources-wrap").hidden = false;
+  }
+  function setBadge(text, cls) { $("badge").textContent = text; $("badge").className = "pill " + cls; $("result").className = "card result " + (cls === "neutral" ? "" : cls); }
+
+  document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => { $("q").value = b.dataset.q; ask(); }));
+  $("q").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); ask(); } });
+  $("ask").addEventListener("submit", e => { e.preventDefault(); ask(); });
+
+  let busy = false;
+  async function ask() {
+    const question = $("q").value.trim();
+    if (!question || busy) return;
+    busy = true; $("go").disabled = true; $("status").textContent = "Searching the law…";
+    $("result").hidden = false; setBadge("Searching", "neutral");
+    $("answer").className = "answer pending"; $("answer").textContent = "Finding the relevant sections…";
+    $("meta").textContent = ""; $("sources-wrap").hidden = true;
+    const box = $("result").getBoundingClientRect();
+    if (box.top > innerHeight - 120) $("result").scrollIntoView({block: "start", behavior: "instant"});
+    let text = "", searchMs = null, frame = 0;
+    const paint = () => { frame = 0; $("answer").innerHTML = withCites(text); };
+    try {
+      const res = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({question})});
+      const reader = res.body.getReader(), dec = new TextDecoder(); let buf = "";
+      for (;;) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, {stream: true});
+        let i;
+        while ((i = buf.indexOf("\n")) >= 0) {
+          const ev = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
+          if (ev.type === "meta") {
+            searchMs = ev.ms; retrieved = ev.retrieved;
+            if (ev.answered === null) {
+              setBadge("Writing answer", "neutral"); $("status").textContent = "Writing the answer…";
+              $("answer").textContent = "Reading the sources…"; showSources(retrieved, null, null);
+            }
+          } else if (ev.type === "token") {
+            if (!text) $("answer").className = "answer";
+            text += ev.text;
+            if (!frame) frame = requestAnimationFrame(paint);      // at most one repaint per frame
+          } else if (ev.type === "error") {
+            $("answer").className = "answer"; $("answer").textContent = ev.message; setBadge("Error", "bad");
+          } else if (ev.type === "done") {
+            if (frame) cancelAnimationFrame(frame);
+            $("answer").className = "answer";
+            $("answer").innerHTML = ev.answered ? withCites(ev.answer) : esc(ev.answer);
+            setBadge(ev.answered ? "Answered from the sources" : (REASONS[ev.reason] || "Not answered"), ev.answered ? "ok" : "warn");
+            const bits = [];
+            if (ev.cached) bits.push("instant (asked before)");
+            else { if (searchMs !== null) bits.push(`found sources in ${(searchMs / 1000).toFixed(2)} s`); bits.push(`total ${(ev.ms / 1000).toFixed(1)} s`); }
+            if (ev.confidence !== null) bits.push(`match confidence ${ev.confidence.toFixed(2)}`);
+            $("meta").textContent = bits.join(" · ");
+            showSources(ev.reason === "off topic" || ev.reason === "other jurisdiction" ? [] : ev.retrieved, ev.answered ? ev.cited : null, ev.answered);
+          }
         }
       }
+    } catch (err) {
+      $("answer").className = "answer"; $("answer").textContent = "Could not reach the server: " + err; setBadge("Error", "bad");
     }
-  } catch (err) {
-    $("answer").textContent = "Could not reach the server: " + err;
+    busy = false; $("go").disabled = false; $("status").textContent = "";
   }
-  $("go").disabled = false; $("status").textContent = "";
-};
+})();
 </script>
 {% endblock %}

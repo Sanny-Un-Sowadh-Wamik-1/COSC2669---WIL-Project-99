@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% block title %}About · Renter Rights Assistant{% endblock %}
 {% block main %}
+<div class="prose">
 <h1>About this assistant and its limits</h1>
+<p class="lead">What it knows, how it decides whether to answer, and where it can go wrong.</p>
 
-<h2>What it knows</h2>
+<h2 style="margin-top:28px">What it knows</h2>
 <ul>
   <li><strong>Residential Tenancies Act 1997 (Vic)</strong>, authorised version 114 (legislation.vic.gov.au, accessed 1 Oct 2026)</li>
   <li><strong>Residential Tenancies Regulations 2021 (Vic)</strong>, version 009, including the rental minimum standards (Schedule 4)</li>
@@ -13,27 +15,28 @@
 <p class="muted">It does not cover other states, commercial or retail leases, owners corporations, buying property, VCAT procedure and fees,
 Centrelink, or court decisions. It does not learn from your questions; it looks up the documents above every time.</p>
 
-<h2>How it decides whether to answer</h2>
-<ol>
+<h2 style="margin-top:28px">How it decides whether to answer</h2>
+<ol class="steps">
   <li>Questions about other states or countries are declined.</li>
   <li>Questions that are not close to anything in the knowledge base are declined as off-topic (similarity below {{ '%.2f'|format(op.topic_threshold) }}).</li>
   <li>It retrieves the {{ op.top_k }} most relevant passages. If the best match is weak ({{ op.confidence }} below {{ '%.3f'|format(op.threshold) }}), it says "I don't know".</li>
   <li>A local LLM ({{ op.llm }}) writes the answer only from those passages and must cite them. If it can't, or cites nothing, the answer is withheld.</li>
 </ol>
 
-<h2>Why a wrong answer matters</h2>
+<h2 style="margin-top:28px">Why a wrong answer matters</h2>
 <p>A renter may act on an answer, for example by withholding rent, ignoring a notice to vacate or missing a 30-day deadline to challenge it.
 A wrong answer could cost them their home, their bond or their right to challenge a decision. That is why this tool prefers to say
 "I don't know" rather than guess, shows the exact section it relied on, and should never replace advice from Consumer Affairs Victoria,
 Tenants Victoria, VCAT or a lawyer.</p>
 
-<h2>Known limitations</h2>
+<h2 style="margin-top:28px">Known limitations</h2>
 <ul>
   <li>The law changes. Answers are only as current as the versions listed above.</li>
   <li>Small local models (3–4 billion parameters) can still misread a section or leave out a condition.</li>
   <li>The Act has many near-identical rules for rooming houses, caravan parks and SDA. The system assumes you rent an ordinary house or flat unless you say otherwise.</li>
   <li>Correctness was measured automatically by checking for key facts, on a test set written by the team. See the dashboard for the numbers and failure cases.</li>
 </ul>
-<h2>Privacy</h2>
+<h2 style="margin-top:28px">Privacy</h2>
 <p>Everything runs on this computer with Ollama. Questions are not stored or sent anywhere.</p>
+</div>
 {% endblock %}

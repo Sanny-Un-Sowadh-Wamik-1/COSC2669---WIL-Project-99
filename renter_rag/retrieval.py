@@ -68,11 +68,23 @@ def embed(texts, model, batch=32):
     vectors = []
     for i in range(0, len(texts), batch):
         reply = requests.post(f"{OLLAMA}/api/embed", json={"model": model, "input": texts[i:i + batch],
-                                                           "keep_alive": "30m"}, timeout=600)
+                                                           "keep_alive": "2h"}, timeout=600)
         reply.raise_for_status()
         vectors.extend(reply.json()["embeddings"])
     matrix = np.asarray(vectors, dtype=np.float32)
     return matrix / np.linalg.norm(matrix, axis=1, keepdims=True)
+
+
+def cached_tokens(chunks, chunking):
+    """BM25 tokens for every chunk; stemming 1,500 chunks takes ~1 s, so cache it on disk."""
+    texts = [chunk_text(c) for c in chunks]
+    digest = hashlib.sha1("\n".join(texts).encode()).hexdigest()[:12]
+    path = CACHE / f"tokens_{chunking}_{digest}.json"
+    if path.exists():
+        return json.loads(path.read_text())
+    tokens = [tokenize(t) for t in texts]
+    path.write_text(json.dumps(tokens))
+    return tokens
 
 
 def chunk_embeddings(chunks, model, chunking):
@@ -93,7 +105,7 @@ class Index:
     def __init__(self, chunking, embed_model):
         self.chunking, self.embed_model = chunking, embed_model
         self.chunks = json.loads((CACHE / f"chunks_{chunking}.json").read_text())
-        self.bm25 = BM25Okapi([tokenize(chunk_text(c)) for c in self.chunks])
+        self.bm25 = BM25Okapi(cached_tokens(self.chunks, chunking))
         self.vectors = chunk_embeddings(self.chunks, embed_model, chunking) if embed_model else None
         self._qcache = {}
 

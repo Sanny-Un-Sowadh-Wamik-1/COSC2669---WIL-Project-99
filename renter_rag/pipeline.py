@@ -58,7 +58,7 @@ def format_sources(chunks):
 
 
 def chat(model, system, user, stream=False, num_predict=260):
-    payload = {"model": model, "stream": stream, "keep_alive": "30m",
+    payload = {"model": model, "stream": stream, "keep_alive": "2h",
                "options": {"temperature": 0, "num_ctx": 4096, "num_predict": num_predict, "seed": 7},
                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
     if model.startswith("qwen3"):
