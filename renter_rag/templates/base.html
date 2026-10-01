@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Renter Rights Assistant{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <div class="bar">
+    <strong>Victorian Renter Rights Assistant</strong>
+    <nav>
+      <a href="/" class="{{ 'on' if page == 'ask' }}">Ask</a>
+      <a href="/dashboard" class="{{ 'on' if page == 'dashboard' }}">Dashboard</a>
+      <a href="/about" class="{{ 'on' if page == 'about' }}">About &amp; limits</a>
+    </nav>
+  </div>
+</header>
+<div class="disclaimer"><div>
+  <strong>General information, not legal advice.</strong> Answers come only from the Residential Tenancies Act 1997 (Vic),
+  its regulations and Consumer Affairs Victoria guidance, and may be incomplete or wrong. Check the cited source, and for your
+  situation contact Consumer Affairs Victoria (1300 55 81 81), Tenants Victoria or a lawyer.
+</div></div>
+<main>{% block main %}{% endblock %}</main>
+<footer>COSC2669 WIL Project · Group 99 · runs locally with Ollama, no data leaves this computer.</footer>
+</body>
+</html>

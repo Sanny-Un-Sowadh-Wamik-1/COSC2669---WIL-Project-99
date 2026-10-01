@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block main %}
+<h1>Ask about renting in Victoria</h1>
+<p class="lead">Rent, bonds, repairs, entry, pets, notices to vacate, minimum standards, disputes. Every answer cites the section it came from.</p>
+
+<form id="ask">
+  <textarea id="q" name="q" maxlength="500" placeholder="e.g. How much notice do I get before a rent increase?" required></textarea>
+  <div class="row">
+    <button id="go" type="submit">Ask</button>
+    <span id="status" class="muted"></span>
+  </div>
+  <div class="examples">
+    {% for e in examples %}<button type="button" data-q="{{ e }}">{{ e }}</button>{% endfor %}
+  </div>
+</form>
+
+<div id="result" class="panel" hidden>
+  <div class="row" style="margin-top:0"><span id="badge" class="tag"></span><span id="conf" class="muted"></span></div>
+  <p id="answer" class="answer"></p>
+  <div id="sources-wrap" hidden>
+    <h2 style="margin-top:12px">Sources cited</h2>
+    <div id="sources"></div>
+  </div>
+  <details id="retrieved-wrap" hidden>
+    <summary class="muted">What the system retrieved</summary>
+    <div id="retrieved" class="body"></div>
+  </details>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const REASONS = {
+  "other jurisdiction": "Not answered: other state",
+  "off topic": "Not answered: outside renting in Victoria",
+  "low confidence": "Not answered: no strong match in the law",
+  "LLM said it doesn't know": "Not answered: sources don't cover it",
+  "no citation": "Not answered: answer could not be tied to a source",
+  "empty": "Not answered"
+};
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+function sourceHtml(c, n) {
+  return `<div class="source"><div><strong>${n ? "[" + n + "] " : ""}${esc(c.citation)}</strong> — ${esc(c.heading)}</div>
+    <div class="meta">${esc(c.kind === "law" ? "Legislation" : "CAV guidance")} · ${esc(c.date)} · <a href="${encodeURI(c.url)}" target="_blank" rel="noopener">open source</a></div>
+    <div>${esc(c.text)}</div></div>`;
+}
+document.querySelectorAll(".examples button").forEach(b => b.onclick = () => { $("q").value = b.dataset.q; $("q").focus(); });
+
+$("ask").onsubmit = async e => {
+  e.preventDefault();
+  const question = $("q").value.trim();
+  if (!question) return;
+  $("go").disabled = true; $("status").textContent = "Searching the law…";
+  $("result").hidden = false; $("answer").textContent = ""; $("badge").textContent = ""; $("badge").className = "tag";
+  $("conf").textContent = ""; $("sources-wrap").hidden = true; $("retrieved-wrap").hidden = true;
+  try {
+    const res = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({question})});
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, {stream: true});
+      let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const ev = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
+        if (ev.type === "meta" && ev.answered === null) $("status").textContent = "Writing the answer…";
+        if (ev.type === "token") $("answer").textContent += ev.text;
+        if (ev.type === "error") { $("answer").textContent = ev.message; $("badge").textContent = "Error"; $("badge").className = "tag bad"; }
+        if (ev.type === "done") {
+          $("answer").textContent = ev.answer;
+          $("badge").textContent = ev.answered ? "Answered" : (REASONS[ev.reason] || "Not answered");
+          $("badge").className = "tag " + (ev.answered ? "ok" : "warn");
+          if (ev.confidence !== null) $("conf").textContent = "confidence " + ev.confidence.toFixed(2);
+          if (ev.sources.length) { $("sources").innerHTML = ev.sources.map((c, k) => sourceHtml(c)).join(""); $("sources-wrap").hidden = false; }
+          if (ev.retrieved.length) { $("retrieved").innerHTML = ev.retrieved.map((c, k) => sourceHtml(c, k + 1)).join(""); $("retrieved-wrap").hidden = false; }
+        }
+      }
+    }
+  } catch (err) {
+    $("answer").textContent = "Could not reach the server: " + err;
+  }
+  $("go").disabled = false; $("status").textContent = "";
+};
+</script>
+{% endblock %}

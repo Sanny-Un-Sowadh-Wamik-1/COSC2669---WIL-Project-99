@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Renter Rights Assistant{% endblock %}
+{% block main %}
+<h1>Evaluation dashboard</h1>
+{% if not s %}
+<p class="lead">No results yet. Run <code>python run_retrieval.py</code> then <code>python run_eval.py</code>.</p>
+{% else %}
+{% set t = s.test %}{% set cb = s.closed_book_test %}
+<p class="lead">Held-out TEST set: {{ t.questions }} questions ({{ t.answerable }} answerable, {{ t.unanswerable }} unanswerable).
+Settings were chosen on the separate DEV set. LLM <code>{{ op.llm }}</code>, retriever <code>{{ op.retriever }}</code>
+({{ op.embed_model }}, {{ op.chunking }} chunks, top {{ op.top_k }}), confidence = <code>{{ op.confidence }}</code> ≥ {{ '%.3f'|format(op.threshold) }}.</p>
+
+<div class="tiles">
+  <div class="tile"><div class="v">{{ t.answer_rate }}%</div><div class="k">Answer rate (answerable questions)</div></div>
+  <div class="tile"><div class="v">{{ t.accuracy_on_answered }}%</div><div class="k">Accuracy on answered (all key facts)</div></div>
+  <div class="tile"><div class="v">{{ t.correct_abstention_rate }}%</div><div class="k">Correct abstention (unanswerable)</div></div>
+  <div class="tile"><div class="v">{{ t.false_refusal_rate }}%</div><div class="k">False refusal rate</div></div>
+  <div class="tile"><div class="v">{{ t.avg_sources_per_answer }}</div><div class="k">Average sources per answer</div></div>
+  <div class="tile"><div class="v">{{ '%.2f'|format(t.avg_confidence_answered) }}</div><div class="k">Average confidence when answering</div></div>
+</div>
+
+<h2>RAG vs the same LLM without retrieval</h2>
+<div class="scroll"><table>
+  <tr><th></th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th><th class="num">Sources per answer</th></tr>
+  <tr class="best"><td>RAG (this system)</td><td class="num">{{ t.answer_rate }}%</td><td class="num">{{ t.accuracy_on_answered }}%</td><td class="num">{{ t.correct_abstention_rate }}%</td><td class="num">{{ t.avg_sources_per_answer }}</td></tr>
+  <tr><td>LLM only, no retrieval</td><td class="num">{{ cb.answer_rate }}%</td><td class="num">{{ cb.accuracy_on_answered }}%</td><td class="num">{{ cb.correct_abstention_rate }}%</td><td class="num">0</td></tr>
+</table></div>
+
+<h2>Results by question group and wording</h2>
+<div class="scroll"><table>
+  <tr><th>Slice</th><th class="num">Questions</th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th></tr>
+  {% for g, v in s.test_by_group.items() %}
+  <tr><td>group: {{ g.replace('_', ' ') }}</td><td class="num">{{ v.questions }}</td><td class="num">{{ v.answer_rate if v.answer_rate is not none else '–' }}{{ '%' if v.answer_rate is not none }}</td>
+      <td class="num">{{ v.accuracy_on_answered if v.accuracy_on_answered is not none else '–' }}{{ '%' if v.accuracy_on_answered is not none }}</td>
+      <td class="num">{{ v.correct_abstention_rate if v.correct_abstention_rate is not none else '–' }}{{ '%' if v.correct_abstention_rate is not none }}</td></tr>
+  {% endfor %}
+  {% for g, v in s.test_by_style.items() %}
+  <tr><td>wording: {{ g }}</td><td class="num">{{ v.questions }}</td><td class="num">{{ v.answer_rate }}%</td>
+      <td class="num">{{ v.accuracy_on_answered if v.accuracy_on_answered is not none else '–' }}{{ '%' if v.accuracy_on_answered is not none }}</td><td class="num">–</td></tr>
+  {% endfor %}
+</table></div>
+<p class="muted">Legal and slang questions reword the same plain questions, so a gap between those rows is a fairness problem.</p>
+
+<h2>Why answers went wrong (error analysis, TEST)</h2>
+<div class="scroll"><table>
+  <tr><th>Cause</th><th class="num">Questions</th></tr>
+  {% for k, v in s.errors_test.items() %}<tr><td>{{ k }}</td><td class="num">{{ v }}</td></tr>{% else %}<tr><td colspan="2">No errors.</td></tr>{% endfor %}
+</table></div>
+
+<h2>Abstention threshold (DEV)</h2>
+<p class="muted">Raising the threshold removes wrong answers but also refuses more answerable questions. Chosen point: best utility
+(correct +1, wrong −1, refusal 0; unanswerable: refusal +1, answer −1). Dev at that point: answer rate {{ s.dev_point.answer_rate }}%,
+accuracy {{ s.dev_point.accuracy_on_answered }}%, correct abstention {{ s.dev_point.correct_abstention_rate }}%.</p>
+<img class="chart" src="/results/threshold_curve_dev.png" alt="Answer rate, accuracy and abstention against threshold on the dev set" loading="lazy" width="840" height="480">
+<h3 style="font-size:15px">Which confidence signal separates answerable from unanswerable? (AUROC on DEV, 1.0 = perfect)</h3>
+<div class="scroll"><table>
+  <tr>{% for k in s.signal_auroc_dev %}<th class="num">{{ k }}</th>{% endfor %}</tr>
+  <tr>{% for v in s.signal_auroc_dev.values() %}<td class="num">{{ v }}</td>{% endfor %}</tr>
+</table></div>
+<h3 style="font-size:15px">LLMs compared on DEV (best threshold for each)</h3>
+<div class="scroll"><table>
+  <tr><th>LLM</th><th class="num">Utility</th><th class="num">Answer rate</th><th class="num">Accuracy on answered</th><th class="num">Correct abstention</th></tr>
+  {% for m, curve in s.dev_curves.items() %}{% set b = curve|sort(attribute='utility')|last %}
+  <tr class="{{ 'best' if m == op.llm }}"><td>{{ m }}</td><td class="num">{{ b.utility }}</td><td class="num">{{ b.answer_rate }}%</td><td class="num">{{ b.accuracy_on_answered }}%</td><td class="num">{{ b.correct_abstention_rate }}%</td></tr>
+  {% endfor %}
+</table></div>
+
+<h2>Retrieval comparison (DEV, answerable questions)</h2>
+<p class="muted">Test check of the chosen setup: hit@5 {{ s.retrieval.test[1]['hit@5'] }} vs {{ s.retrieval.test[0]['hit@5'] }} for the v1 BM25 baseline;
+nDCG@5 {{ s.retrieval.test[1]['ndcg@5'] }} vs {{ s.retrieval.test[0]['ndcg@5'] }}.</p>
+<details><summary>All {{ retrieval|length }} configurations</summary>
+<div class="scroll"><table>
+  <tr><th>Chunking</th><th>Retriever</th><th>Embedding</th><th>Tenure filter</th><th class="num">hit@1</th><th class="num">hit@5</th><th class="num">recall@5</th><th class="num">MRR</th><th class="num">nDCG@5</th><th class="num">nDCG@10</th></tr>
+  {% for r in retrieval %}
+  <tr class="{{ 'best' if loop.first }}"><td>{{ r.chunking }}</td><td>{{ r.retriever }}</td><td>{{ r.embed_model }}</td><td>{{ 'on' if r.tenure_filter == 'True' else 'off' }}</td>
+    <td class="num">{{ r['hit@1'] }}</td><td class="num">{{ r['hit@5'] }}</td><td class="num">{{ r['recall@5'] }}</td><td class="num">{{ r.mrr }}</td><td class="num">{{ r['ndcg@5'] }}</td><td class="num">{{ r['ndcg@10'] }}</td></tr>
+  {% endfor %}
+</table></div>
+</details>
+
+<h2 id="questions">Every test question</h2>
+<form class="filters" method="get" action="/dashboard#questions">
+  <label>Group <select name="group">
+    <option value="">all</option>
+    {% for g in ['answerable', 'near_miss', 'off_topic'] %}<option value="{{ g }}" {{ 'selected' if g == group }}>{{ g.replace('_', ' ') }}</option>{% endfor %}
+  </select></label>
+  <label>Outcome <select name="label">
+    <option value="">all</option>
+    {% for l in ['correct', 'partly correct', 'incorrect', 'false refusal', 'correct abstention', 'wrongly answered'] %}<option value="{{ l }}" {{ 'selected' if l == label }}>{{ l }}</option>{% endfor %}
+  </select></label>
+  <button type="submit">Filter</button>
+  <span class="muted">{{ rows|length }} of {{ all_rows|length }}</span>
+</form>
+<div class="scroll"><table>
+  <tr><th>ID</th><th>Question and answer</th><th>Outcome</th><th class="num">Conf.</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.qid }}</td>
+    <td><details><summary>{{ r.question }}</summary><div class="body">
+      <div><strong>Answer:</strong> {{ r.answer or '(not answered: ' ~ r.reason ~ ')' }}</div>
+      {% if r.sources %}<div><strong>Sources:</strong> {{ r.sources }}</div>{% endif %}
+      {% if r.reference %}<div><strong>Reference:</strong> {{ r.reference }} <span class="muted">(gold: {{ r.gold }})</span></div>{% endif %}
+      {% if r.error %}<div><strong>Error type:</strong> {{ r.error }}</div>{% endif %}
+      <div><strong>LLM without retrieval said:</strong> {{ r.closed_book_answer }}</div>
+    </div></details></td>
+    <td><span class="tag {{ 'ok' if r.label in ['correct', 'correct abstention'] else ('warn' if r.label in ['partly correct', 'false refusal'] else 'bad') }}">{{ r.label }}</span></td>
+    <td class="num">{{ r.confidence }}</td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

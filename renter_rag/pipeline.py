@@ -94,8 +94,6 @@ class RenterRAG:
                   "retrieved": [], "confidence": None, "signals": {}}
         if not question:
             return {**result, "answered": False, "reason": "empty", "answer": OFF_TOPIC}
-        if is_other_jurisdiction(question):
-            return {**result, "answered": False, "reason": "other jurisdiction", "answer": OTHER_STATE}
 
         cos = self.index.cosines(question)
         top = self.index.search(question, s["retriever"], k=s["top_k"], tenure_filter=s.get("tenure_filter", True))
@@ -103,6 +101,8 @@ class RenterRAG:
         result["signals"] = signals = self.signals(question, cos, [i for i, _ in top])
         result["confidence"] = round(signals[s["confidence"]], 3)
 
+        if is_other_jurisdiction(question):
+            return {**result, "answered": False, "reason": "other jurisdiction", "answer": OTHER_STATE}
         if signals["top_cosine_all"] < s["topic_threshold"]:
             return {**result, "answered": False, "reason": "off topic", "answer": OFF_TOPIC}
         if result["confidence"] < s["threshold"]:
