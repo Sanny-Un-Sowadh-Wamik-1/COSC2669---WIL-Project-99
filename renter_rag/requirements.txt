@@ -1,0 +1,9 @@
+rank-bm25
+nltk
+numpy
+pyyaml
+python-docx
+requests
+flask
+matplotlib
+pytest

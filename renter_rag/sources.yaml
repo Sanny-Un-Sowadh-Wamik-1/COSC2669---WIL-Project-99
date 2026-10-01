@@ -1,0 +1,50 @@
+# Every document in the knowledge base, where it came from, and the terms we use it under.
+# fetch_sources.py downloads the legislation files listed here (they are not committed, see below).
+
+legislation:
+  - id: RTA
+    title: Residential Tenancies Act 1997 (Vic)
+    version: "114 (authorised, incorporating amendments to 2026-09)"
+    page: https://www.legislation.vic.gov.au/in-force/acts/residential-tenancies-act-1997/114
+    file: https://content.legislation.vic.gov.au/sites/default/files/2026-09/97-109a114.docx
+    local: data/sources/legislation/RTA-v114.docx
+    unit: s          # citation style: s 44
+    accessed: 2026-10-01
+  - id: RTR
+    title: Residential Tenancies Regulations 2021 (Vic)
+    version: "009"
+    page: https://www.legislation.vic.gov.au/in-force/statutory-rules/residential-tenancies-regulations-2021/009
+    file: https://content.legislation.vic.gov.au/sites/default/files/2026-06/21-3sr009.docx
+    local: data/sources/legislation/RTR-v009.docx
+    unit: reg
+    accessed: 2026-10-01
+  - id: RHS
+    title: Residential Tenancies (Rooming House Standards) Regulations 2023 (Vic)
+    version: "002"
+    page: https://www.legislation.vic.gov.au/in-force/statutory-rules/residential-tenancies-rooming-house-standards-regulations-2023/002
+    file: https://content.legislation.vic.gov.au/sites/default/files/2024-11/23-10sr002.docx
+    local: data/sources/legislation/RHS-v002.docx
+    unit: reg
+    accessed: 2026-10-01
+
+legislation_terms: >
+  Copyright in Victorian legislation is owned by the Government Printer. Authorised electronic
+  versions are published on legislation.vic.gov.au "for personal use only"; other reproduction
+  must be within the Copyright Act 1968 (Cth) (https://www.legislation.vic.gov.au/copyright).
+  We use the text for non-commercial university research and study, relying on fair dealing for
+  research or study (Copyright Act s 40; to be confirmed with our mentor), and we do NOT commit the downloaded files or the chunks built from them to GitHub. Anyone can rebuild
+  them with `python fetch_sources.py`.
+
+cav_guidance:
+  folder: data/sources/cav            # 25 pages, each with url / last_updated / retrieved in its header
+  publisher: Consumer Affairs Victoria
+  retrieved: 2026-09-28
+  terms: >
+    Creative Commons Attribution 4.0 International (https://www.consumer.vic.gov.au/copyright),
+    excluding logos and images. We keep only text and attribute every passage to its page URL.
+
+scope: >
+  Residential renting in Victoria: rental agreements, rooming houses, caravan parks / residential
+  parks, specialist disability accommodation, bonds, VCAT tenancy disputes. Commercial / retail
+  leases (Retail Leases Act 2003), strata / owners corporations, buying property, other states
+  and federal Rent Assistance are deliberately out of scope.
