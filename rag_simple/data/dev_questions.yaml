@@ -1,0 +1,27 @@
+# DEV questions - used only to tune the confidence threshold in evaluate.py.
+# Same format as test_questions.yaml. Kept separate so the test result is fair.
+
+- {qid: D01, cat: K, q: "Does the rental provider have to give me a receipt when I pay rent?", gold: {CAV-RENTPAY-06: 2}, facts: ['receipt', 'five business days|5 business days'], answer: "Yes: immediately if paid in person, or within five business days if you ask."}
+- {qid: D02, cat: K, q: "Who is responsible for supplying rubbish and recycling bins?", gold: {CAV-MINSTD-11: 2}, facts: ['rubbish bin', 'recycling'], answer: "The rental provider must supply vermin-proof rubbish and recycling bins."}
+- {qid: D03, cat: K, q: "Can I install a wireless doorbell without permission?", gold: {CAV-MODS-02: 2}, facts: ['wireless doorbell'], answer: "Yes, a wireless doorbell can be installed without permission."}
+- {qid: D04, cat: K, q: "What must the landlord give me before I move in?", gold: {CAV-AGREE-04: 2, CAV-CONDREP-01: 1}, facts: ['condition report', 'keys'], answer: "A copy of the agreement, the Renters guide, an urgent repairs phone number, contact details, keys and a condition report."}
+- {qid: D05, cat: K, q: "How long do I have to accept a bond claim sent through the RTBA?", gold: {CAV-BONDCLAIM-05: 2}, facts: ['14 days'], answer: "14 days, otherwise the claim expires."}
+- {qid: D06, cat: K, q: "Is there a cooling-off period after I sign a rental agreement?", gold: {CAV-AGREE-01: 2}, facts: ['no cooling-off'], answer: "No, there is no cooling-off period."}
+- {qid: D07, cat: K, q: "When will new energy efficiency standards for rentals start?", gold: {CAV-CHANGES-03: 2, CAV-MINSTD-02: 1}, facts: ['1 March 2027'], answer: "Phased in from 1 March 2027."}
+- {qid: D08, cat: K, q: "Can a lease make me take out contents insurance?", gold: {CAV-AGREE-05: 2}, facts: ['insurance'], answer: "No. Renters cannot be required to take out any form of insurance."}
+- {qid: D09, cat: K, q: "How long does the landlord have to finish the exit condition report?", gold: {CAV-CONDREP-04: 2}, facts: ['10 days'], answer: "Within 10 days of the agreement ending."}
+- {qid: D10, cat: K, q: "What is fair wear and tear?", gold: {CAV-BONDCLAIM-03: 2}, facts: ['reasonable use', 'natural'], answer: "Deterioration from reasonable use or natural environmental forces."}
+- {qid: D11, cat: I, q: "My smoke alarm keeps beeping and seems broken. The landlord won't pick up. What now?", gold: {CAV-SMOKE-04: 2, CAV-REPAIRS-04: 1}, facts: ['urgent', '\$2,?500'], answer: "A broken smoke alarm is an urgent repair; you can arrange it yourself up to $2,500 and be reimbursed within 7 days."}
+- {qid: D12, cat: I, q: "The agent wants to take photos of my bedroom with my stuff in it for an ad. Can I say no?", gold: {CAV-ENTRY-09: 2}, facts: ['object'], answer: "You can object to photos that identify you or show valuables; the provider then can't use them."}
+- {qid: D13, cat: I, q: "My landlord refused to let me paint the lounge room. Can they do that?", gold: {CAV-MODS-03: 2, CAV-MODS-06: 1}, facts: ['painting', 'VCAT|good reason'], answer: "Painting is a change they can't refuse without a good reason; you can apply to VCAT."}
+- {qid: D14, cat: I, q: "I'm leaving and the agent says I need to pay for new curtains that faded in the sun. Do I?", gold: {CAV-BONDCLAIM-03: 2, CAV-BONDCLAIM-01: 1}, facts: ['fair wear and tear'], answer: "No, faded curtains are fair wear and tear, which can't be claimed from the bond."}
+- {qid: D15, cat: I, q: "Is my landlord allowed to show new tenants through two months before my lease ends?", gold: {CAV-ENTRY-07: 2, CAV-ENTRY-04: 1}, facts: ['21 days'], answer: "Only within the last 21 days of the agreement."}
+- {qid: D16, cat: I, q: "My ex was violent and I want the lease in my name only. What can I do?", gold: {CAV-FV-01: 2}, facts: ['VCAT', 'new rental agreement'], answer: "Apply to VCAT for a new rental agreement in your name that excludes the person using violence."}
+- {qid: D17, cat: O, q: "What is the maximum bond in Queensland?"}
+- {qid: D18, cat: O, q: "How do I get a mortgage pre-approval?"}
+- {qid: D19, cat: O, q: "What are the best suburbs in Melbourne for students?"}
+- {qid: D20, cat: O, q: "How much does it cost to hire a removalist?"}
+- {qid: D21, cat: O, q: "Can my employer make me work unpaid overtime?"}
+- {qid: D22, cat: O, q: "What is the land tax rate for investment properties?"}
+- {qid: D23, cat: O, q: "How do I report a noisy neighbour to the council?"}
+- {qid: D24, cat: O, q: "What is the weather in Melbourne tomorrow?"}

@@ -1,0 +1,392 @@
+# TEST questions - used only to report final results (never for tuning)
+#
+# cat (type):  K known | I inferred (scenario) | O out-of-KB (should say "I don't know")
+#              L legal wording of a K question | C slang wording of a K question  (fairness)
+# gold:   passage IDs that contain the answer (2 = answers it, 1 = helpful)
+# facts:  key facts a correct answer must contain (regular expressions, e.g. '90 days')
+# pair:   for L and C questions, the K question they reword (gold and facts are copied from it)
+# answer: a model answer written by us, for reference
+#
+# All gold passages and facts were checked against the CAV pages saved on 28 Sep 2026.
+
+- qid: K01
+  cat: K
+  q: How much notice does my landlord have to give me before putting the rent up?
+  gold: {CAV-RENTINC-01: 2, CAV-RENTINC-05: 2, CAV-RENTINC-02: 1, CAV-CHANGES-04: 1}
+  facts: ['90 days']
+  answer: At least 90 days' written notice, using the Notice of proposed rent increase form.
+
+- qid: K02
+  cat: K
+  q: How often can my rent be increased?
+  gold: {CAV-RENTINC-04: 2, CAV-RENTINC-01: 1}
+  facts: ['(once every|more than once every) 12 months']
+  answer: In most cases no more than once every 12 months (6 months for agreements that started before 19 June 2019).
+
+- qid: K03
+  cat: K
+  q: What is the most bond a landlord can ask for?
+  gold: {CAV-BOND-02: 2, CAV-RENTINC-07: 1, CAV-BOND-05: 1}
+  facts: ["one month'?s rent|1 month'?s rent", '\$900']
+  answer: Generally no more than one month's rent, unless the weekly rent is over $900 or VCAT orders otherwise.
+
+- qid: K04
+  cat: K
+  q: How much rent can I be asked to pay in advance?
+  gold: {CAV-RENTPAY-04: 2, CAV-APPLY-01: 1, CAV-CHANGES-04: 1}
+  facts: ["one month'?s rent|one month", '14 days']
+  answer: No more than one month's rent in advance (14 days if rent is paid weekly); no limit if rent is over $900 a week.
+
+- qid: K05
+  cat: K
+  q: What counts as an urgent repair?
+  gold: {CAV-REPAIRS-02: 2, CAV-REPAIRS-01: 1, CAV-GASELEC-01: 1}
+  facts: ['gas leak', 'burst water', 'toilet']
+  answer: Items on the legal list, e.g. a burst water service, blocked or broken toilet, serious roof leak, gas leak, dangerous electrical fault, failure of hot water/heating/cooking, non-working smoke alarm.
+
+- qid: K06
+  cat: K
+  q: If my landlord won't fix an urgent repair, can I pay for it myself and how much can I spend?
+  gold: {CAV-REPAIRS-04: 2, CAV-SMOKE-04: 1, CAV-GASELEC-01: 1}
+  facts: ['\$2,?500', '7 days']
+  answer: Yes, up to $2,500; the rental provider must reimburse you within 7 days. Above that, apply to RDRV.
+
+- qid: K07
+  cat: K
+  q: How long does my landlord have to do a non-urgent repair?
+  gold: {CAV-REPAIRS-05: 2, CAV-REPAIRS-08: 1}
+  facts: ['14 days']
+  answer: 14 days from the date of the written request.
+
+- qid: K08
+  cat: K
+  q: How much notice does my landlord need to give for a routine inspection?
+  gold: {CAV-ENTRY-02: 2, CAV-ENTRY-06: 1}
+  facts: ['7 days']
+  answer: At least 7 days' written notice.
+
+- qid: K09
+  cat: K
+  q: What times is my landlord allowed to enter the property?
+  gold: {CAV-ENTRY-03: 2, CAV-REPAIRS-12: 1}
+  facts: ['8 ?am', '6 ?pm', 'public holiday']
+  answer: Only between 8 am and 6 pm, and not on a public holiday.
+
+- qid: K10
+  cat: K
+  q: How often can the landlord do general inspections?
+  gold: {CAV-ENTRY-06: 2, CAV-ENTRY-04: 1}
+  facts: ['6 months', '3 months']
+  answer: Not in the first 3 months, and no more than once every 6 months.
+
+- qid: K11
+  cat: K
+  q: Can my landlord charge me a pet bond?
+  gold: {CAV-PETS-06: 2}
+  facts: ['cannot|can.t|not allowed']
+  answer: No. Rental providers cannot ask for an additional 'pet bond'.
+
+- qid: K12
+  cat: K
+  q: How long does my landlord have to respond to my request to keep a pet?
+  gold: {CAV-PETS-02: 2}
+  facts: ['14 days']
+  answer: 14 days from the day after they receive the Pet request form; if they don't apply to VCAT in that time you can keep the pet.
+
+- qid: K13
+  cat: K
+  q: Can I be evicted at the end of my fixed-term lease for no reason?
+  gold: {CAV-CHANGES-04: 2, CAV-NTV-07: 2, CAV-NTV-02: 1}
+  facts: ['valid reason']
+  answer: No. Since 25 November 2025 a notice to vacate needs a valid reason, even at the end of a fixed term.
+
+- qid: K14
+  cat: K
+  q: How far behind in rent do I have to be before my landlord can give me a notice to vacate?
+  gold: {CAV-ARREARS-02: 2, CAV-NTV-06: 2}
+  facts: ['14 days']
+  answer: At least 14 days' rent owing (14 days' notice).
+
+- qid: K15
+  cat: K
+  q: How much notice do I get if the owner wants me out because they are selling?
+  gold: {CAV-NTV-08: 2, CAV-NTV-07: 1}
+  facts: ['90 days']
+  answer: 90 days, with evidence such as a contract of sale; the agreement can't be shortened for this reason.
+
+- qid: K16
+  cat: K
+  q: What do I need to do with the condition report when I move in?
+  gold: {CAV-CONDREP-02: 2, CAV-CONDREP-01: 1}
+  facts: ['(five|5) business days']
+  answer: Check it, add comments, sign and return a copy within five business days; take dated photos.
+
+- qid: K17
+  cat: K
+  q: Can my landlord make me pay for professional cleaning when I move out?
+  gold: {CAV-CONDREP-05: 2, CAV-AGREE-05: 1}
+  facts: ['professional cleaning', 'fair wear and tear|wear and tear']
+  answer: Not unless professional cleaning is needed to return the property to its starting condition, allowing for fair wear and tear (agreements from 29 March 2021).
+
+- qid: K18
+  cat: K
+  q: Can I hang pictures on the walls without asking my landlord?
+  gold: {CAV-MODS-02: 2, CAV-MODS-03: 1}
+  facts: ['picture hooks', 'brick|concrete']
+  answer: Yes, picture hooks are allowed without permission except on exposed brick or concrete walls (and not in heritage-listed properties).
+
+- qid: K19
+  cat: K
+  q: What kind of heater does a rental property have to have?
+  gold: {CAV-MINSTD-05: 2}
+  facts: ['fixed heater', 'main living area']
+  answer: A fixed (not portable) heater in good working order in the main living area; energy efficient for agreements from 29 March 2023.
+
+- qid: K20
+  cat: K
+  q: Do I get compensated when the landlord shows the property to buyers?
+  gold: {CAV-ENTRY-08: 2}
+  facts: ['\$30', "half a day'?s rent"]
+  answer: Yes, half a day's rent or $30 per inspection, whichever is greater.
+
+- qid: K21
+  cat: K
+  q: How long do I have to challenge a notice to vacate I got because the property is being sold?
+  gold: {CAV-NTVCHAL-03: 2, CAV-NTVCHAL-02: 1}
+  facts: ['30 days']
+  answer: Apply to VCAT within 30 days of receiving the notice.
+
+- qid: K22
+  cat: K
+  q: How do I dispute a rent increase I think is too high?
+  gold: {CAV-RENTCHAL-01: 2, CAV-RENTCHAL-02: 2, CAV-RENTINC-01: 1}
+  facts: ['30 days', 'rent assessment|assessment']
+  answer: Ask Consumer Affairs Victoria for a free rent assessment within 30 days of receiving the notice.
+
+- qid: K23
+  cat: K
+  q: Can my landlord charge a late fee if I pay rent late?
+  gold: {CAV-ARREARS-01: 2, CAV-RENTPAY-02: 2}
+  facts: ['late fee|late payment', 'illegal|cannot|can.t']
+  answer: No. Charging late fees or administration fees for rent is illegal.
+
+- qid: K24
+  cat: K
+  q: What is Rental Dispute Resolution Victoria?
+  gold: {CAV-DISPUTES-01: 2, CAV-DISPUTES-02: 1}
+  facts: ['free', 'VCAT']
+  answer: A free alternative dispute resolution service offered by VCAT for disputes about rent increases, repairs, bonds and more.
+
+- qid: K25
+  cat: K
+  q: Can a landlord refuse to rent to me because I have kids?
+  gold: {CAV-DISCRIM-02: 2, CAV-APPLY-05: 1}
+  facts: ['under 16|children', "main residence|unsuitable"]
+  answer: No, except where the property is the rental provider's main residence or is unsuitable for children.
+
+- qid: K26
+  cat: K
+  q: Who pays for water usage in a rental property?
+  gold: {CAV-UTIL-01: 2}
+  facts: ['water usage|usage']
+  answer: Renters with individual meters pay for water usage and sewage disposal; rental providers pay supply charges.
+
+- qid: K27
+  cat: K
+  q: What documents can an agent ask for in a rental application?
+  gold: {CAV-APPLY-03: 2, CAV-APPLY-02: 1, CAV-APPLY-04: 1}
+  facts: ['identity', 'pay slips|bank statement|Centrelink']
+  answer: Personal details, employment details, up to two financial documents and up to two identity documents, rental history and references.
+
+- qid: K28
+  cat: K
+  q: How often must smoke alarms in a rental be tested?
+  gold: {CAV-SMOKE-02: 2, CAV-CHANGES-04: 1}
+  facts: ['12 months|annual']
+  answer: At least once every 12 months (annual smoke alarm safety checks).
+
+- qid: K29
+  cat: K
+  q: When does the ban on rental application fees start?
+  gold: {CAV-CHANGES-02: 2}
+  facts: ['13 October 2026']
+  answer: From 13 October 2026.
+
+- qid: K30
+  cat: K
+  q: Do I have to keep paying rent while I'm waiting for repairs?
+  gold: {CAV-REPAIRS-07: 2, CAV-RENTPAY-05: 2}
+  facts: ['continue paying|keep paying|must not stop', 'special account']
+  answer: Yes, but you can apply to RDRV to have rent paid into the Rent Special Account until the matter is resolved.
+
+# ------------------------------------------------------------------ inferred
+- qid: I01
+  cat: I
+  q: My landlord gave me a rent increase notice only 60 days before the new rent starts. Do I have to pay it from then?
+  gold: {CAV-RENTINC-05: 2, CAV-RENTINC-01: 2, CAV-CHANGES-04: 1}
+  facts: ['90 days', "not valid|isn.t valid|invalid|only has to pay the increase if"]
+  answer: No. At least 90 days' notice is required; without proper notice the increase is not valid.
+
+- qid: I02
+  cat: I
+  q: My lease just says rent increases will be by "CPI" and my landlord has put it up 8%. Is that allowed?
+  gold: {CAV-RENTINC-03: 2, CAV-RENTINC-02: 2}
+  facts: ['CPI', 'invalid|not enough|review']
+  answer: Simply writing "CPI" is listed as invalid wording; the method must be clear enough to check. You can request a review.
+
+- qid: I03
+  cat: I
+  q: The heater broke in the middle of winter and the agent isn't answering. The repair quote is $1,800. What can I do?
+  gold: {CAV-REPAIRS-04: 2, CAV-REPAIRS-02: 2, CAV-REPAIRS-03: 1}
+  facts: ['urgent', '\$2,?500', '7 days']
+  answer: A broken heater is an urgent repair; you can arrange the repair yourself (up to $2,500) and be reimbursed within 7 days.
+
+- qid: I04
+  cat: I
+  q: Our hot water system died and a replacement costs $3,200. Can I just get it done and take it out of the rent?
+  gold: {CAV-REPAIRS-04: 2, CAV-RENTPAY-05: 2, CAV-REPAIRS-07: 1}
+  facts: ['\$2,?500', 'RDRV|Rental Dispute Resolution', 'must not stop|continue paying|keep paying']
+  answer: Over $2,500 you should apply to RDRV rather than pay yourself; keep paying rent (you can ask for the Rent Special Account).
+
+- qid: I05
+  cat: I
+  q: I asked for repairs and a week later I got a notice to vacate. Is that allowed?
+  gold: {CAV-NTV-02: 2, CAV-NTVCHAL-01: 1, CAV-NTVCHAL-02: 1}
+  facts: ['requesting repairs', 'VCAT']
+  answer: No. A rental provider can't give notice for requesting repairs; you can challenge the notice at VCAT.
+
+- qid: I06
+  cat: I
+  q: The agent wants to do an inspection two months after I moved in. Do I have to let them in?
+  gold: {CAV-ENTRY-06: 2, CAV-ENTRY-04: 2}
+  facts: ['3 months|three months']
+  answer: No. General inspections are only allowed after the first 3 months.
+
+- qid: I07
+  cat: I
+  q: I was 10 days late with rent and got a notice to vacate. Is it valid?
+  gold: {CAV-ARREARS-02: 2, CAV-NTV-06: 2}
+  facts: ['14 days']
+  answer: No. A notice for unpaid rent requires at least 14 days' rent owing.
+
+- qid: I08
+  cat: I
+  q: I got a notice to vacate saying the owner's son is moving in. What evidence should come with it and how much notice do I get?
+  gold: {CAV-NTV-08: 2, CAV-NTVCHAL-03: 1}
+  facts: ['statutory declaration', '90 days']
+  answer: A witnessed statutory declaration naming the person and their relationship; 90 days' notice.
+
+- qid: I09
+  cat: I
+  q: I've been on a month-to-month lease since 2022. How often can my rent go up and how much warning do I get?
+  gold: {CAV-RENTINC-04: 2, CAV-RENTINC-05: 2}
+  facts: ['12 months', '90 days']
+  answer: No more than once every 12 months, with at least 90 days' notice.
+
+- qid: I10
+  cat: I
+  q: I sent my landlord a pet request three weeks ago and haven't heard back. Can I get the dog now?
+  gold: {CAV-PETS-02: 2}
+  facts: ['14 days', 'keep the pet']
+  answer: Yes. If the rental provider hasn't responded or applied to VCAT within 14 days, you can keep the pet.
+
+- qid: I11
+  cat: I
+  q: The stovetop didn't work when I moved in last week and still hasn't been fixed. Can I end the lease?
+  gold: {CAV-BREAK-02: 2, CAV-MINSTD-06: 2, CAV-MINSTD-01: 1}
+  facts: ['minimum standards', 'immediate']
+  answer: A working stovetop is a minimum standard; if the property didn't meet minimum standards at move-in you can end the agreement immediately without costs (it is also an urgent repair).
+
+- qid: I12
+  cat: I
+  q: I need to leave my 12-month lease 6 months early for a job interstate. What will it cost me?
+  gold: {CAV-BREAK-03: 2, CAV-BREAK-04: 1, CAV-BREAK-02: 1}
+  facts: ['re-?letting', 'advertising', 'half']
+  answer: "Reasonable costs - rent until re-let, reasonable advertising, and a proportional re-letting fee (half the fee with 6 of 12 months left); no penalties."
+
+- qid: I13
+  cat: I
+  q: The agent wants to show the house to buyers every day this week. Is that OK?
+  gold: {CAV-ENTRY-08: 2, CAV-ENTRY-02: 1}
+  facts: ['twice a week']
+  answer: No. Sale inspections are limited to twice a week, one hour each, unless you agree, and you are compensated each time.
+
+- qid: I14
+  cat: I
+  q: Mould is growing in my bedroom because rain leaks through a broken window frame. Who has to fix it?
+  gold: {CAV-MOULD-02: 2, CAV-MOULD-03: 2, CAV-MINSTD-09: 1, CAV-REPAIRS-02: 1}
+  facts: ['rental provider', 'urgent']
+  answer: The rental provider, because the building fault caused it; mould from a building fault can be an urgent repair.
+
+- qid: I15
+  cat: I
+  q: The agent asked for my full bank statements with every transaction and how many bond claims I've had. Are they allowed to?
+  gold: {CAV-APPLY-04: 2, CAV-APPLY-03: 1}
+  facts: ['transaction', 'bond claim']
+  answer: No. They can't ask for statements showing daily transactions (you can redact them) or your bond claim history.
+
+# ------------------------------------------------------------------ out of KB
+- qid: O01
+  cat: O
+  q: What is the maximum bond a landlord can charge in New South Wales?
+- qid: O02
+  cat: O
+  q: Can I claim my rent as a tax deduction if I work from home?
+- qid: O03
+  cat: O
+  q: What is the median weekly rent in Brunswick right now?
+- qid: O04
+  cat: O
+  q: How much stamp duty would I pay on a $700,000 house in Victoria?
+- qid: O05
+  cat: O
+  q: What notice does a landlord need to give to end a commercial shop lease?
+- qid: O06
+  cat: O
+  q: How do I apply for Commonwealth Rent Assistance?
+- qid: O07
+  cat: O
+  q: Can my owners corporation fine me for parking in a visitor car space?
+- qid: O08
+  cat: O
+  q: What is the process for buying the house I'm renting from my landlord?
+- qid: O09
+  cat: O
+  q: Do I need a permit to list my spare room on Airbnb in Melbourne?
+- qid: O10
+  cat: O
+  q: Who won the AFL grand final in 2025?
+- qid: O11
+  cat: O
+  q: Is there a cap on rent increases in the ACT?
+- qid: O12
+  cat: O
+  q: Can I get legal aid to sue my employer for unpaid wages?
+
+# ------------------------------------------------------------------ fairness: legal register
+- {qid: L01, cat: L, pair: K01, q: "What is the minimum period of notice a residential rental provider must give a renter of a proposed rent increase?"}
+- {qid: L02, cat: L, pair: K02, q: "What is the minimum interval between rent increases under a residential rental agreement?"}
+- {qid: L03, cat: L, pair: K03, q: "What is the maximum amount of bond a residential rental provider may require under a residential rental agreement?"}
+- {qid: L05, cat: L, pair: K05, q: "Which categories of repairs are defined as urgent repairs in relation to rented premises?"}
+- {qid: L06, cat: L, pair: K06, q: "Where a residential rental provider fails to effect urgent repairs, what is the maximum amount a renter may expend on such repairs and within what period must the provider reimburse the renter?"}
+- {qid: L08, cat: L, pair: K08, q: "What period of written notice of entry is required for a general inspection of rented premises?"}
+- {qid: L11, cat: L, pair: K11, q: "Is a residential rental provider permitted to require an additional bond in respect of a pet kept at the rented premises?"}
+- {qid: L13, cat: L, pair: K13, q: "May a residential rental provider serve a notice to vacate upon the expiry of a fixed term residential rental agreement without specifying a reason?"}
+- {qid: L14, cat: L, pair: K14, q: "What quantum of rent arrears entitles a residential rental provider to serve a notice to vacate for non-payment of rent?"}
+- {qid: L15, cat: L, pair: K15, q: "What is the minimum notice period for a notice to vacate issued on the ground that the rented premises are to be sold?"}
+- {qid: L21, cat: L, pair: K21, q: "Within what period must a renter apply to the Tribunal to challenge a notice to vacate issued on the ground of sale of the premises?"}
+- {qid: L23, cat: L, pair: K23, q: "Is a residential rental provider entitled to impose a fee for the late payment of rent?"}
+
+# ------------------------------------------------------------------ fairness: colloquial / non-native / typos
+- {qid: C01, cat: C, pair: K01, q: "how long b4 the landlord can jack up my rent, like how much warning"}
+- {qid: C02, cat: C, pair: K02, q: "landlord keep raising rent, how many time per year he can do it?"}
+- {qid: C03, cat: C, pair: K03, q: "agent wants 6 weeks bond is that even allowed"}
+- {qid: C05, cat: C, pair: K05, q: "whats an emergency fix the landlord has to do straight away"}
+- {qid: C06, cat: C, pair: K06, q: "landlord ignoring me, toilet broke, can i just call plumber myself and make him pay back?"}
+- {qid: C08, cat: C, pair: K08, q: "how many days warning do i get before agent comes to check the house"}
+- {qid: C11, cat: C, pair: K11, q: "they want extra money deposit for my cat is that legal"}
+- {qid: C13, cat: C, pair: K13, q: "lease finishing soon, can owner just kick me out no reason?"}
+- {qid: C14, cat: C, pair: K14, q: "im bit behind on rent, when can they tell me to get out"}
+- {qid: C15, cat: C, pair: K15, q: "owner selling the house, how long till i have to move out"}
+- {qid: C21, cat: C, pair: K21, q: "got told to leave coz they selling, how long i got to fight it"}
+- {qid: C23, cat: C, pair: K23, q: "agent charged me $50 because rent was 2 days late, can they do that??"}

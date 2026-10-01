@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Victorian Renter Rights Assistant</h1>
+<p class="muted">Answers come only from Consumer Affairs Victoria renting guidance, and every answer shows its source.
+This is a student prototype, not legal advice.</p>
+
+<div class="card">
+  <form method="post">
+    <textarea name="question" placeholder="Ask a renting question...">{{ result.question if result else "" }}</textarea>
+    <p><button type="submit">Ask</button></p>
+  </form>
+  {% for e in examples %}
+  <form method="post" style="display:inline"><input type="hidden" name="question" value="{{ e }}">
+    <button class="example" type="submit">{{ e }}</button></form>
+  {% endfor %}
+</div>
+
+{% if result %}
+<div class="card {% if not result.answered %}dontknow{% endif %}">
+  <p>{{ result.answer }}</p>
+  <p class="muted">Confidence {{ result.confidence }} (answers only when it is at least {{ threshold }})
+    {% if result.reason %} · Did not answer: {{ result.reason }}{% endif %}</p>
+</div>
+
+{% if cited %}
+<div class="card">
+  <h3>Sources</h3>
+  {% for p in cited %}
+  <p><span class="source-id">{{ p.id }}</span> <strong>{{ p.heading }}</strong>
+     <span class="muted">({{ p.page_title }}, updated {{ p.last_updated }})</span><br>
+     {{ p.text }}<br><a href="{{ p.url }}" target="_blank">Open the CAV page</a></p>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

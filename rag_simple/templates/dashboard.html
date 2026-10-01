@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>How well does it work?</h1>
+<p class="muted">Test set: {{ s.test_overall.questions }} questions the system never saw during tuning.
+Generator: {{ s.generator }}. Threshold tuned on the dev set: <strong>{{ s.threshold }}</strong>.</p>
+
+<!-- The six numbers the team asked for. The slider below recalculates them live. -->
+<div class="tiles">
+  <div class="tile"><div class="muted">Answer rate</div><div class="big" id="answer_rate"></div></div>
+  <div class="tile"><div class="muted">Accuracy on answered</div><div class="big" id="accuracy_on_answered"></div></div>
+  <div class="tile"><div class="muted">Said "I don't know" when it should</div><div class="big" id="refusal_rate_out_of_kb"></div></div>
+  <div class="tile"><div class="muted">Cited a correct source</div><div class="big" id="source_accuracy"></div></div>
+  <div class="tile"><div class="muted">Avg confidence when answering</div><div class="big" id="avg_confidence_when_answering"></div></div>
+  <div class="tile"><div class="muted">Avg sources per answer</div><div class="big" id="avg_sources_per_answer"></div></div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <label>Try a different threshold: <strong id="t_label"></strong></label>
+  <input type="range" id="slider" min="0" max="20" step="0.5" value="{{ s.threshold }}" style="width:100%">
+  <p class="muted">Lower = answers more but makes more mistakes and answers questions it shouldn't.
+  Higher = safer but says "I don't know" more often. (The real threshold was chosen on the dev set, not with this slider.)</p>
+</div>
+
+<div class="card">
+  <h3>How the threshold was chosen (dev set)</h3>
+  <img src="{{ url_for('static', filename='threshold_curve_dev.png') }}" alt="Answer rate, accuracy and refusal rate against the threshold">
+</div>
+
+<div class="card">
+  <h3>Results by question type</h3>
+  <table>
+    <tr><th>Type</th><th>Questions</th><th>Answer rate %</th><th>Accuracy on answered %</th><th>Refusal rate %</th><th>Source accuracy %</th></tr>
+    {% for t, m in s.test_by_type.items() %}
+    <tr><td>{{ {"K":"Known","I":"Inferred","O":"Should not answer","L":"Legal wording","C":"Slang wording"}[t] }}</td>
+        <td>{{ m.questions }}</td><td>{{ m.answer_rate if m.answer_rate is not none else "–" }}</td>
+        <td>{{ m.accuracy_on_answered if m.accuracy_on_answered is not none else "–" }}</td>
+        <td>{{ m.refusal_rate_out_of_kb if m.refusal_rate_out_of_kb is not none else "–" }}</td>
+        <td>{{ m.source_accuracy if m.source_accuracy is not none else "–" }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h3>Search quality and fairness</h3>
+  <p>Retrieval NDCG@3: <strong>{{ s.retrieval_test["ndcg@3"] }}</strong> · Recall@3: <strong>{{ s.retrieval_test["recall@3"] }}</strong>
+    <span class="muted">(same metric as Walert)</span></p>
+  <p>Accuracy on the same 12 questions asked three ways: plain {{ s.fairness_accuracy.plain }}% ·
+     legal {{ s.fairness_accuracy.legal }}% · slang {{ s.fairness_accuracy.colloquial }}%</p>
+  {% if s.no_rag_llm %}
+  <p>Same LLM without RAG: accuracy {{ s.no_rag_llm.accuracy }}%, and it used the old 60-day rule
+     {{ s.no_rag_llm.used_old_60_day_rule }} time(s).</p>
+  {% endif %}
+</div>
+
+<script>
+  // test_curve holds the metrics for every threshold (computed in evaluate.py)
+  const curve = {{ curve_json | safe }};
+  const keys = ["answer_rate", "accuracy_on_answered", "refusal_rate_out_of_kb", "source_accuracy",
+                "avg_confidence_when_answering", "avg_sources_per_answer"];
+  function show(t) {
+    const row = curve.find(r => r.threshold === t);
+    document.getElementById("t_label").textContent = t;
+    for (const k of keys) {
+      const v = row[k];
+      const pct = !k.startsWith("avg");
+      document.getElementById(k).textContent = v === null ? "–" : (pct ? v + "%" : v);
+    }
+  }
+  const slider = document.getElementById("slider");
+  slider.oninput = () => show(parseFloat(slider.value));
+  show(parseFloat(slider.value));
+</script>
+{% endblock %}

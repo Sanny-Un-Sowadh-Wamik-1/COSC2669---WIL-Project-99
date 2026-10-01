@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renter Rights Assistant</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; background: #f5f6f8; color: #1d2330; }
+  nav { background: #1f4e99; padding: 12px 20px; }
+  nav a { color: white; margin-right: 18px; text-decoration: none; font-weight: 600; }
+  main { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
+  .card { background: white; border: 1px solid #dde1e7; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  textarea { width: 100%; box-sizing: border-box; height: 60px; font: inherit; padding: 8px; }
+  button { background: #1f4e99; color: white; border: 0; padding: 8px 16px; border-radius: 6px; font: inherit; cursor: pointer; }
+  .example { background: #eef2f8; color: #1d2330; margin: 4px 4px 0 0; font-size: 13px; }
+  .dontknow { background: #fff4e0; border-color: #f0c070; }
+  .muted { color: #5d6675; font-size: 13px; }
+  .source-id { font-family: monospace; color: #1f4e99; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .tile { background: white; border: 1px solid #dde1e7; border-radius: 10px; padding: 12px; }
+  .tile .big { font-size: 26px; font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border-bottom: 1px solid #e3e6eb; padding: 6px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  img { max-width: 100%; }
+</style>
+</head>
+<body>
+<nav><a href="/">Ask</a><a href="/dashboard">Dashboard</a></nav>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

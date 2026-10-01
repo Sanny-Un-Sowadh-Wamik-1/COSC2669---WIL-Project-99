@@ -112,10 +112,10 @@ git clone https://github.com/rmit-ir/walert.git external/walert
 To reproduce the same Walert version used for Milestone 1:
 
 ⁠ bash
-git -C external/walert checkout <WALERT_COMMIT_HASH>
+git -C external/walert checkout 9417518ade245771b2d4f1ad919b840cecb2876e
  ⁠
 
-	⁠Replace ⁠ <WALERT_COMMIT_HASH> ⁠ with the exact Walert commit used for the reproduction.
+(Walert main at commit 9417518, 14 Aug 2025, the version used for the Milestone 1 reproduction.)
 
 ### Run the Single-Query Inspection
 
@@ -205,3 +205,8 @@ The next stage will adapt the Test-Driven RAG approach to the *Victorian Renter 
 •⁠  ⁠developing renter-focused evaluation questions;
 •⁠  ⁠comparing retrieval and generation configurations; and
 •⁠  ⁠evaluating the system quantitatively against defined test cases.
+
+
+Milestone 2: Victorian Renter Rights Assistant
+
+The domain RAG system, test questions, evaluation and web app (with dashboard) are in rag_simple/. See rag_simple/README.md for how to run it and the results.

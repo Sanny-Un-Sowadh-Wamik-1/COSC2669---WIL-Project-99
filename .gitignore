@@ -1,4 +1,7 @@
-external/walert/
 .DS_Store
 __pycache__/
+*.pyc
+.venv/
+.pytest_cache/
 .env
+renter_rag/cache/
