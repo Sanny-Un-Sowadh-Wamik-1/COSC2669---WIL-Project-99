@@ -26,8 +26,9 @@ SECTION_MAX_WORDS = 300
 # Defaults, replaced by results/operating_point.json once the experiments have been run.
 DEFAULTS = {
     "chunking": "section",
-    "retriever": "hybrid",
-    "embed_model": "nomic-embed-text",
+    "retriever": "dense",
+    "embed_model": "mxbai-embed-large",
+    "tenure_filter": True,
     "top_k": 5,
     "confidence": "top_cosine",
     "threshold": 0.55,

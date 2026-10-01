@@ -207,6 +207,7 @@ The next stage will adapt the Test-Driven RAG approach to the *Victorian Renter 
 •⁠  ⁠evaluating the system quantitatively against defined test cases.
 
 
-Milestone 2: Victorian Renter Rights Assistant
+## Milestone 2: Victorian Renter Rights Assistant
 
-The domain RAG system, test questions, evaluation and web app (with dashboard) are in rag_simple/. See rag_simple/README.md for how to run it and the results.
+- **`renter_rag/`**: the current system (v2). It covers the Residential Tenancies Act 1997 (Vic), its Regulations and CAV guidance, and compares BM25, dense and hybrid retrieval and section vs fixed chunking. It gives cited answers, abstains with a tuned threshold, gates off-topic questions, and has a dashboard. Start with [`renter_rag/README.md`](renter_rag/README.md).
+- `rag_simple/`: the v1 prototype (BM25 over CAV pages), kept as the baseline.

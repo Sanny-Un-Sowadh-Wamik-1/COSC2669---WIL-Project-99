@@ -23,13 +23,15 @@ import hashlib
 import json
 import sys
 
+import requests
 import yaml
 
-from config import CACHE, QUESTIONS, RESULTS, operating_point
+from config import CACHE, OLLAMA, QUESTIONS, RESULTS, operating_point
 from metrics import auroc, facts_found, mean
 from pipeline import CLOSED_BOOK_PROMPT, SYSTEM_PROMPT, RenterRAG, chat, format_sources, says_dont_know
 
-LLMS = ["qwen2.5:3b", "llama3.2:3b", "gemma3:4b"]
+# gemma3:4b (4B) is left out: with the embedding model it does not fit in the 8 GB eval laptop without heavy swapping.
+LLMS = ["qwen2.5:3b", "llama3.2:3b"]
 SIGNALS = ["top_cosine", "margin", "top_bm25", "agreement"]
 GEN_CACHE = CACHE / "generations.json"
 _gen_cache = json.loads(GEN_CACHE.read_text()) if GEN_CACHE.exists() else {}
@@ -41,6 +43,11 @@ def cached_chat(model, system, user):
         _gen_cache[key] = chat(model, system, user)
         GEN_CACHE.write_text(json.dumps(_gen_cache, indent=0))
     return _gen_cache[key]
+
+
+def unload(model):
+    """Free the model's memory in Ollama (the eval laptop has 8 GB)."""
+    requests.post(f"{OLLAMA}/api/generate", json={"model": model, "keep_alive": 0}, timeout=60)
 
 
 def load(split):
@@ -157,9 +164,15 @@ def main(models):
         settings["embed_model"] = "nomic-embed-text"
     rag = RenterRAG(settings)
     dev, test = load("dev"), load("test")
+    for q in dev + test:                      # embed every question now, then free the embedding model
+        rag.index.query_vector(q["q"])
+    unload(settings["embed_model"])
 
     # a-d. DEV
-    dev_runs = {m: run(rag, dev, m) for m in models}
+    dev_runs = {}
+    for m in models:
+        dev_runs[m] = run(rag, dev, m)
+        unload(m)
     any_rows = next(iter(dev_runs.values()))
     ans_rows = [r for r in any_rows if r["group"] == "answerable"]
     una_rows = [r for r in any_rows if r["group"] != "answerable" and not r["jurisdiction_refused"]]
