@@ -94,8 +94,19 @@ def dashboard():
     group, outcome = request.args.get("group", ""), request.args.get("label", "")
     shown = [r for r in rows or [] if (not group or r["group"] == group) and (not outcome or r["label"] == outcome)]
     retrieval_top = sorted(retrieval or [], key=lambda r: -float(r["ndcg@5"]))
+    choice = _load("retrieval_choice.json", lambda p: json.loads(p.read_text()))
     return render_template("dashboard.html", s=summary, rows=shown, all_rows=rows or [], group=group,
-                           label=outcome, retrieval=retrieval_top, op=operating_point(), page="dashboard")
+                           label=outcome, retrieval=retrieval_top, choice=choice, progress=eval_progress(),
+                           op=operating_point(), page="dashboard")
+
+
+def eval_progress():
+    """Last progress line of a running run_eval.py, e.g. 'llama3.2:3b: 12/57'."""
+    log = RESULTS.parent / "cache" / "eval_log.txt"
+    if not log.exists():
+        return ""
+    lines = [x.strip() for x in log.read_text().replace("\r", "\n").splitlines() if x.strip()]
+    return lines[-1] if lines else ""
 
 
 @app.get("/results/<name>.png")

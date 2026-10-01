@@ -3,7 +3,33 @@
 {% block main %}
 <h1>Evaluation dashboard</h1>
 {% if not s %}
-<p class="lead">No results yet. Run <code>python run_retrieval.py</code> then <code>python run_eval.py</code>.</p>
+<div class="panel" style="margin-top:0">
+  <strong>Answer-quality results are not ready yet.</strong>
+  {% if progress %}<span class="muted">run_eval.py progress: {{ progress }}. Reload this page when it finishes.</span>
+  {% else %}<span class="muted">Run <code>python run_eval.py</code> to produce them.</span>{% endif %}
+</div>
+{% if retrieval %}<h2>Retrieval comparison (DEV, answerable questions)</h2>
+{% if choice %}{% set b, c = choice.test[0], choice.test[1] %}
+<div class="tiles">
+  <div class="tile"><div class="v">{{ c['hit@5'] }}</div><div class="k">hit@5, chosen (test) · v1 BM25: {{ b['hit@5'] }}</div></div>
+  <div class="tile"><div class="v">{{ c['ndcg@5'] }}</div><div class="k">nDCG@5, chosen (test) · v1 BM25: {{ b['ndcg@5'] }}</div></div>
+  <div class="tile"><div class="v">{{ c.mrr }}</div><div class="k">MRR, chosen (test) · v1 BM25: {{ b.mrr }}</div></div>
+  <div class="tile"><div class="v">{{ c['recall@5'] }}</div><div class="k">recall@5, chosen (test) · v1 BM25: {{ b['recall@5'] }}</div></div>
+</div>
+<p class="muted">Chosen on DEV: {{ choice.chosen.chunking }} chunks, {{ choice.chosen.retriever }} retrieval with {{ choice.chosen.embed_model }},
+tenure filter {{ 'on' if choice.chosen.tenure_filter else 'off' }}. Test numbers are from one run with that setup fixed.</p>
+{% endif %}
+<details><summary>All {{ retrieval|length }} configurations</summary>
+<div class="scroll"><table>
+  <tr><th>Chunking</th><th>Retriever</th><th>Embedding</th><th>Tenure filter</th><th class="num">hit@1</th><th class="num">hit@5</th><th class="num">recall@5</th><th class="num">MRR</th><th class="num">nDCG@5</th><th class="num">nDCG@10</th></tr>
+  {% for r in retrieval %}
+  <tr class="{{ 'best' if loop.first }}"><td>{{ r.chunking }}</td><td>{{ r.retriever }}</td><td>{{ r.embed_model }}</td><td>{{ 'on' if r.tenure_filter == 'True' else 'off' }}</td>
+    <td class="num">{{ r['hit@1'] }}</td><td class="num">{{ r['hit@5'] }}</td><td class="num">{{ r['recall@5'] }}</td><td class="num">{{ r.mrr }}</td><td class="num">{{ r['ndcg@5'] }}</td><td class="num">{{ r['ndcg@10'] }}</td></tr>
+  {% endfor %}
+</table></div>
+</details>
+
+{% else %}<p class="lead">No retrieval results yet either. Run <code>python run_retrieval.py</code>.</p>{% endif %}
 {% else %}
 {% set t = s.test %}{% set cb = s.closed_book_test %}
 <p class="lead">Held-out TEST set: {{ t.questions }} questions ({{ t.answerable }} answerable, {{ t.unanswerable }} unanswerable).
@@ -66,8 +92,16 @@ accuracy {{ s.dev_point.accuracy_on_answered }}%, correct abstention {{ s.dev_po
 </table></div>
 
 <h2>Retrieval comparison (DEV, answerable questions)</h2>
-<p class="muted">Test check of the chosen setup: hit@5 {{ s.retrieval.test[1]['hit@5'] }} vs {{ s.retrieval.test[0]['hit@5'] }} for the v1 BM25 baseline;
-nDCG@5 {{ s.retrieval.test[1]['ndcg@5'] }} vs {{ s.retrieval.test[0]['ndcg@5'] }}.</p>
+{% if choice %}{% set b, c = choice.test[0], choice.test[1] %}
+<div class="tiles">
+  <div class="tile"><div class="v">{{ c['hit@5'] }}</div><div class="k">hit@5, chosen (test) · v1 BM25: {{ b['hit@5'] }}</div></div>
+  <div class="tile"><div class="v">{{ c['ndcg@5'] }}</div><div class="k">nDCG@5, chosen (test) · v1 BM25: {{ b['ndcg@5'] }}</div></div>
+  <div class="tile"><div class="v">{{ c.mrr }}</div><div class="k">MRR, chosen (test) · v1 BM25: {{ b.mrr }}</div></div>
+  <div class="tile"><div class="v">{{ c['recall@5'] }}</div><div class="k">recall@5, chosen (test) · v1 BM25: {{ b['recall@5'] }}</div></div>
+</div>
+<p class="muted">Chosen on DEV: {{ choice.chosen.chunking }} chunks, {{ choice.chosen.retriever }} retrieval with {{ choice.chosen.embed_model }},
+tenure filter {{ 'on' if choice.chosen.tenure_filter else 'off' }}. Test numbers are from one run with that setup fixed.</p>
+{% endif %}
 <details><summary>All {{ retrieval|length }} configurations</summary>
 <div class="scroll"><table>
   <tr><th>Chunking</th><th>Retriever</th><th>Embedding</th><th>Tenure filter</th><th class="num">hit@1</th><th class="num">hit@5</th><th class="num">recall@5</th><th class="num">MRR</th><th class="num">nDCG@5</th><th class="num">nDCG@10</th></tr>
@@ -77,6 +111,7 @@ nDCG@5 {{ s.retrieval.test[1]['ndcg@5'] }} vs {{ s.retrieval.test[0]['ndcg@5'] }
   {% endfor %}
 </table></div>
 </details>
+
 
 <h2 id="questions">Every test question</h2>
 <form class="filters" method="get" action="/dashboard#questions">
