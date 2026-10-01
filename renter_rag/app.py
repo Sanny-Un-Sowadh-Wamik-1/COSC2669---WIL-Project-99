@@ -1,6 +1,6 @@
 """Web app: Ask page (streams the answer as it is written) + Dashboard (precomputed results).
 
-Run:  python app.py        then open http://127.0.0.1:5000
+Run:  python app.py        then open http://127.0.0.1:5050
 
 Kept deliberately light so it stays fast on a laptop: the index and embeddings are loaded once at
 start-up, the LLM is warmed up in the background, answers stream token by token, the dashboard only
@@ -9,6 +9,7 @@ reads files written by run_eval.py, and the pages use no animation or front-end 
 
 import csv
 import json
+import os
 import threading
 
 from flask import Flask, Response, abort, render_template, request, send_from_directory
@@ -110,4 +111,5 @@ def about():
 
 
 if __name__ == "__main__":
-    app.run(debug=False, threaded=True)
+    # 5050 by default: port 5000 is taken by AirPlay Receiver on macOS
+    app.run(port=int(os.environ.get("PORT", 5050)), debug=False, threaded=True)

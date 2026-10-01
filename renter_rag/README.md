@@ -21,7 +21,7 @@ python fetch_sources.py    # 1. download the authorised Act + Regulations (not c
 python ingest.py           # 2. parse + chunk -> cache/ (about 10 s)
 python run_retrieval.py    # 3. retrieval experiment on dev -> results/retrieval_*.csv (embeds once, then about 15 s)
 python run_eval.py         # 4. LLM / confidence / threshold on dev, then test once -> results/ (slow: about 1 h on an 8 GB M1)
-python app.py              # 5. http://127.0.0.1:5000  -> Ask, Dashboard, About
+python app.py              # 5. http://127.0.0.1:5050  -> Ask, Dashboard, About
 pytest -q                  # unit tests for metrics, chunking and gates
 ```
 
