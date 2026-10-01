@@ -1,0 +1,538 @@
+# DEV set: used for every tuning decision (chunking, retriever, k, threshold).
+#
+# group:  answerable | near_miss (sounds like renting law but is not covered: other states, buying,
+#         commercial leases, statistics, Centrelink ...) | off_topic (nothing to do with renting,
+#         including prompt-injection attempts). The system should answer only `answerable`.
+# style:  plain | scenario (a renter's situation) | legal (formal wording) | slang (informal /
+#         non-native wording). legal and slang questions reword a plain one (`pair`) for the
+#         fairness check, and copy its gold + facts.
+# gold:   units that answer it. 2 = answers it, 1 = helpful. Units: RTA-s44 = Residential
+#         Tenancies Act 1997 s 44, RTR-r32 = Residential Tenancies Regulations 2021 reg 32,
+#         RTR-sch4-c5 = Regulations sch 4 cl 5, RHS-r7 = Rooming House Standards Regs reg 7,
+#         CAV-RENTINC-05 = 5th heading of the CAV "Rent increases" page.
+# facts:  regular expressions a correct answer must ALL contain (automatic check).
+# answer: our reference answer.
+#
+# CAV gold was checked against the CAV pages saved 28 Sep 2026 (v1, rag_simple). Legislation
+# gold and the N-questions were added 1 Oct 2026 from the authorised Act v114 / Regs v009 and
+# drafted with AI assistance (see docs/AI_USE_LOG.md). STATUS: needs a teammate to check every
+# legislation gold unit and answer against the Act before results are final.
+
+- qid: K04
+  group: answerable
+  style: plain
+  q: How much rent can I be asked to pay in advance?
+  gold:
+    CAV-RENTPAY-04: 2
+    CAV-APPLY-01: 1
+    CAV-CHANGES-04: 1
+    RTA-s40: 2
+    RTA-s41: 2
+  facts:
+  - one month'?s rent|one month
+  - 14 days
+  answer: No more than one month's rent in advance (14 days if rent is paid weekly); no limit if rent is over $900 a week.
+- qid: K07
+  group: answerable
+  style: plain
+  q: How long does my landlord have to do a non-urgent repair?
+  gold:
+    CAV-REPAIRS-05: 2
+    CAV-REPAIRS-08: 1
+    RTA-s74: 2
+  facts:
+  - 14 days
+  answer: 14 days from the date of the written request.
+- qid: K10
+  group: answerable
+  style: plain
+  q: How often can the landlord do general inspections?
+  gold:
+    CAV-ENTRY-06: 2
+    CAV-ENTRY-04: 1
+    RTA-s86: 2
+  facts:
+  - 6 months
+  - 3 months
+  answer: Not in the first 3 months, and no more than once every 6 months.
+- qid: K16
+  group: answerable
+  style: plain
+  q: What do I need to do with the condition report when I move in?
+  gold:
+    CAV-CONDREP-02: 2
+    CAV-CONDREP-01: 1
+    RTA-s35: 2
+  facts:
+  - (five|5) business days
+  answer: Check it, add comments, sign and return a copy within five business days; take dated photos.
+- qid: K19
+  group: answerable
+  style: plain
+  q: What kind of heater does a rental property have to have?
+  gold:
+    CAV-MINSTD-05: 2
+    RTR-sch4-c14: 2
+  facts:
+  - fixed heater
+  - main living area
+  answer: A fixed (not portable) heater in good working order in the main living area; energy efficient for agreements from
+    29 March 2023.
+- qid: K22
+  group: answerable
+  style: plain
+  q: How do I dispute a rent increase I think is too high?
+  gold:
+    CAV-RENTCHAL-01: 2
+    CAV-RENTCHAL-02: 2
+    CAV-RENTINC-01: 1
+    RTA-s45: 2
+  facts:
+  - 30 days
+  - rent assessment|assessment
+  answer: Ask Consumer Affairs Victoria for a free rent assessment within 30 days of receiving the notice.
+- qid: K25
+  group: answerable
+  style: plain
+  q: Can a landlord refuse to rent to me because I have kids?
+  gold:
+    CAV-DISCRIM-02: 2
+    CAV-APPLY-05: 1
+    RTA-s30: 2
+  facts:
+  - under 16|children
+  - main residence|unsuitable
+  answer: No, except where the property is the rental provider's main residence or is unsuitable for children.
+- qid: K27
+  group: answerable
+  style: plain
+  q: What documents can an agent ask for in a rental application?
+  gold:
+    CAV-APPLY-03: 2
+    CAV-APPLY-02: 1
+    CAV-APPLY-04: 1
+    RTR-r14B: 1
+  facts:
+  - identity
+  - pay slips|bank statement|Centrelink
+  answer: Personal details, employment details, up to two financial documents and up to two identity documents, rental history
+    and references.
+- qid: K29
+  group: answerable
+  style: plain
+  q: When does the ban on rental application fees start?
+  gold:
+    CAV-CHANGES-02: 2
+    RTR-r21C: 1
+    RTA-s51A: 1
+  facts:
+  - 13 October 2026
+  answer: From 13 October 2026.
+- qid: I02
+  group: answerable
+  style: scenario
+  q: My lease just says rent increases will be by "CPI" and my landlord has put it up 8%. Is that allowed?
+  gold:
+    CAV-RENTINC-03: 2
+    CAV-RENTINC-02: 2
+    RTA-s44: 1
+  facts:
+  - CPI
+  - invalid|not enough|review
+  answer: Simply writing "CPI" is listed as invalid wording; the method must be clear enough to check. You can request a review.
+- qid: I04
+  group: answerable
+  style: scenario
+  q: Our hot water system died and a replacement costs $3,200. Can I just get it done and take it out of the rent?
+  gold:
+    CAV-REPAIRS-04: 2
+    CAV-RENTPAY-05: 2
+    CAV-REPAIRS-07: 1
+    RTR-r32: 2
+    RTA-s77: 1
+  facts:
+  - \$2,?500
+  - RDRV|Rental Dispute Resolution
+  - must not stop|continue paying|keep paying
+  answer: Over $2,500 you should apply to RDRV rather than pay yourself; keep paying rent (you can ask for the Rent Special
+    Account).
+- qid: I06
+  group: answerable
+  style: scenario
+  q: The agent wants to do an inspection two months after I moved in. Do I have to let them in?
+  gold:
+    CAV-ENTRY-06: 2
+    CAV-ENTRY-04: 2
+    RTA-s86: 2
+  facts:
+  - 3 months|three months
+  answer: No. General inspections are only allowed after the first 3 months.
+- qid: I09
+  group: answerable
+  style: scenario
+  q: I've been on a month-to-month lease since 2022. How often can my rent go up and how much warning do I get?
+  gold:
+    CAV-RENTINC-04: 2
+    CAV-RENTINC-05: 2
+    RTA-s44: 2
+  facts:
+  - 12 months
+  - 90 days
+  answer: No more than once every 12 months, with at least 90 days' notice.
+- qid: I11
+  group: answerable
+  style: scenario
+  q: The stovetop didn't work when I moved in last week and still hasn't been fixed. Can I end the lease?
+  gold:
+    CAV-BREAK-02: 2
+    CAV-MINSTD-06: 2
+    CAV-MINSTD-01: 1
+    RTA-s65A: 2
+    RTR-sch4-c5: 2
+  facts:
+  - minimum standards
+  - immediate
+  answer: A working stovetop is a minimum standard; if the property didn't meet minimum standards at move-in you can end the
+    agreement immediately without costs (it is also an urgent repair).
+- qid: I13
+  group: answerable
+  style: scenario
+  q: The agent wants to show the house to buyers every day this week. Is that OK?
+  gold:
+    CAV-ENTRY-08: 2
+    CAV-ENTRY-02: 1
+    RTA-s86: 2
+  facts:
+  - twice a week
+  answer: No. Sale inspections are limited to twice a week, one hour each, unless you agree, and you are compensated each
+    time.
+- qid: I15
+  group: answerable
+  style: scenario
+  q: The agent asked for my full bank statements with every transaction and how many bond claims I've had. Are they allowed
+    to?
+  gold:
+    CAV-APPLY-04: 2
+    CAV-APPLY-03: 1
+    RTR-r15: 1
+  facts:
+  - transaction
+  - bond claim
+  answer: No. They can't ask for statements showing daily transactions (you can redact them) or your bond claim history.
+- qid: D01
+  group: answerable
+  style: plain
+  q: Does the rental provider have to give me a receipt when I pay rent?
+  gold:
+    CAV-RENTPAY-06: 2
+    RTA-s43: 2
+  facts:
+  - receipt
+  - five business days|5 business days
+  answer: 'Yes: immediately if paid in person, or within five business days if you ask.'
+- qid: D02
+  group: answerable
+  style: plain
+  q: Who is responsible for supplying rubbish and recycling bins?
+  gold:
+    CAV-MINSTD-11: 2
+    RTR-sch4-c2: 2
+  facts:
+  - rubbish bin
+  - recycling
+  answer: The rental provider must supply vermin-proof rubbish and recycling bins.
+- qid: D03
+  group: answerable
+  style: plain
+  q: Can I install a wireless doorbell without permission?
+  gold:
+    CAV-MODS-02: 2
+    RTR-r26: 2
+  facts:
+  - wireless doorbell
+  answer: Yes, a wireless doorbell can be installed without permission.
+- qid: D04
+  group: answerable
+  style: plain
+  q: What must the landlord give me before I move in?
+  gold:
+    CAV-AGREE-04: 2
+    CAV-CONDREP-01: 1
+    RTA-s66: 2
+    RTA-s35: 1
+  facts:
+  - condition report
+  - keys
+  answer: A copy of the agreement, the Renters guide, an urgent repairs phone number, contact details, keys and a condition
+    report.
+- qid: D05
+  group: answerable
+  style: plain
+  q: How long do I have to accept a bond claim sent through the RTBA?
+  gold:
+    CAV-BONDCLAIM-05: 2
+    RTA-s411AC: 1
+  facts:
+  - 14 days
+  answer: 14 days, otherwise the claim expires.
+- qid: D06
+  group: answerable
+  style: plain
+  q: Is there a cooling-off period after I sign a rental agreement?
+  gold:
+    CAV-AGREE-01: 2
+  facts:
+  - no cooling-off
+  answer: No, there is no cooling-off period.
+- qid: D07
+  group: answerable
+  style: plain
+  q: When will new energy efficiency standards for rentals start?
+  gold:
+    CAV-CHANGES-03: 2
+    CAV-MINSTD-02: 1
+  facts:
+  - 1 March 2027
+  answer: Phased in from 1 March 2027.
+- qid: D08
+  group: answerable
+  style: plain
+  q: Can a lease make me take out contents insurance?
+  gold:
+    CAV-AGREE-05: 2
+    RTA-s27B: 2
+  facts:
+  - insurance
+  answer: No. Renters cannot be required to take out any form of insurance.
+- qid: D09
+  group: answerable
+  style: plain
+  q: How long does the landlord have to finish the exit condition report?
+  gold:
+    CAV-CONDREP-04: 2
+  facts:
+  - 10 days
+  answer: Within 10 days of the agreement ending.
+- qid: D10
+  group: answerable
+  style: plain
+  q: What is fair wear and tear?
+  gold:
+    CAV-BONDCLAIM-03: 2
+  facts:
+  - reasonable use
+  - natural
+  answer: Deterioration from reasonable use or natural environmental forces.
+- qid: D11
+  group: answerable
+  style: scenario
+  q: My smoke alarm keeps beeping and seems broken. The landlord won't pick up. What now?
+  gold:
+    CAV-SMOKE-04: 2
+    CAV-REPAIRS-04: 1
+    RTA-s68AA: 2
+    RTA-s72: 1
+  facts:
+  - urgent
+  - \$2,?500
+  answer: A broken smoke alarm is an urgent repair; you can arrange it yourself up to $2,500 and be reimbursed within 7 days.
+- qid: D12
+  group: answerable
+  style: scenario
+  q: The agent wants to take photos of my bedroom with my stuff in it for an ad. Can I say no?
+  gold:
+    CAV-ENTRY-09: 2
+    RTA-s89A: 2
+  facts:
+  - object
+  answer: You can object to photos that identify you or show valuables; the provider then can't use them.
+- qid: D13
+  group: answerable
+  style: scenario
+  q: My landlord refused to let me paint the lounge room. Can they do that?
+  gold:
+    CAV-MODS-03: 2
+    CAV-MODS-06: 1
+    RTR-r28: 1
+    RTA-s64: 1
+  facts:
+  - painting
+  - VCAT|good reason
+  answer: Painting is a change they can't refuse without a good reason; you can apply to VCAT.
+- qid: D14
+  group: answerable
+  style: scenario
+  q: I'm leaving and the agent says I need to pay for new curtains that faded in the sun. Do I?
+  gold:
+    CAV-BONDCLAIM-03: 2
+    CAV-BONDCLAIM-01: 1
+    RTA-s63: 1
+  facts:
+  - fair wear and tear
+  answer: No, faded curtains are fair wear and tear, which can't be claimed from the bond.
+- qid: D15
+  group: answerable
+  style: scenario
+  q: Is my landlord allowed to show new tenants through two months before my lease ends?
+  gold:
+    CAV-ENTRY-07: 2
+    CAV-ENTRY-04: 1
+    RTA-s86: 2
+  facts:
+  - 21 days
+  answer: Only within the last 21 days of the agreement.
+- qid: D16
+  group: answerable
+  style: scenario
+  q: My ex was violent and I want the lease in my name only. What can I do?
+  gold:
+    CAV-FV-01: 2
+    RTA-s91V: 2
+  facts:
+  - VCAT
+  - new rental agreement
+  answer: Apply to VCAT for a new rental agreement in your name that excludes the person using violence.
+- qid: D17
+  group: near_miss
+  q: What is the maximum bond in Queensland?
+- qid: D18
+  group: near_miss
+  q: How do I get a mortgage pre-approval?
+- qid: D19
+  group: near_miss
+  q: What are the best suburbs in Melbourne for students?
+- qid: D20
+  group: near_miss
+  q: How much does it cost to hire a removalist?
+- qid: D21
+  group: off_topic
+  q: Can my employer make me work unpaid overtime?
+- qid: D22
+  group: near_miss
+  q: What is the land tax rate for investment properties?
+- qid: D23
+  group: near_miss
+  q: How do I report a noisy neighbour to the council?
+- qid: D24
+  group: off_topic
+  q: What is the weather in Melbourne tomorrow?
+- qid: N01
+  group: answerable
+  style: plain
+  q: How long does my landlord have to lodge my bond with the RTBA?
+  gold:
+    RTA-s406: 2
+  facts:
+  - 10 business days
+  answer: Within 10 business days of receiving it (s 406).
+- qid: N03
+  group: answerable
+  style: plain
+  q: How much notice do I have to give if I want to move out?
+  gold:
+    RTA-s91Z: 2
+    CAV-BREAK-01: 1
+  facts:
+  - 28 days
+  answer: A notice of intention to vacate with a termination date at least 28 days after the notice is given (s 91Z).
+- qid: N05
+  group: answerable
+  style: plain
+  q: What kitchen facilities must a rental property have?
+  gold:
+    RTR-sch4-c5: 2
+    CAV-MINSTD-06: 2
+  facts:
+  - sink
+  - 2 or more burners|two or more burners|2 burners
+  answer: A food preparation area, a sink with hot and cold water, and a cooktop with 2 or more burners; any oven must work
+    (sch 4 cl 5).
+- qid: N07
+  group: answerable
+  style: plain
+  q: After I was told to leave for renovations, can the landlord rent the place to someone else straight away?
+  gold:
+    RTA-s91ZZH: 2
+  facts:
+  - 6 months
+  answer: No. They must not re-let it as a residence for 6 months after the notice was given unless VCAT allows it (s 91ZZH).
+- qid: N09
+  group: answerable
+  style: plain
+  q: Does the landlord have to give every renter on the lease their own key?
+  gold:
+    RTA-s54A: 2
+  facts:
+  - each renter|every renter
+  - expense|cost
+  answer: Yes, at the rental provider's expense; extra keys can carry a reasonable fee (s 54A).
+- qid: N11
+  group: answerable
+  style: plain
+  q: Can an agent advertise a rental with a price range like $500 to $550 a week?
+  gold:
+    RTA-s30F: 2
+    CAV-APPLY-01: 2
+  facts:
+  - fixed
+  answer: No. Rent must be advertised as a fixed amount (s 30F).
+- qid: N13
+  group: answerable
+  style: plain
+  q: My rental was destroyed in a fire. Can I end the lease straight away?
+  gold:
+    RTA-s91ZD: 2
+  facts:
+  - notice of intention to vacate|same day|immediately|date on which the notice is given
+  answer: Yes. You can give a notice of intention to vacate that takes effect the day it is given (s 91ZD).
+- qid: N15
+  group: answerable
+  style: plain
+  q: Do I have to tell my landlord if something in the house gets damaged or breaks down?
+  gold:
+    RTA-s72AA: 2
+    RTA-s62: 1
+  facts:
+  - written notice|in writing
+  answer: Yes, by written notice as soon as practicable (s 72AA).
+- qid: N17
+  group: answerable
+  style: plain
+  q: What lock must the door to my room in a rooming house have?
+  gold:
+    RHS-r7: 2
+  facts:
+  - key
+  answer: A lock operated by a key from the outside that can be unlocked from the inside without a key (RHS reg 7).
+- qid: N19
+  group: answerable
+  style: plain
+  q: What must the rental provider do about smoke alarms?
+  gold:
+    RTA-s68AA: 2
+    CAV-SMOKE-01: 1
+  facts:
+  - working|installed
+  - 12 months
+  answer: Make sure they are correctly installed, working, have batteries and are tested at least every 12 months (s 68AA).
+- qid: M16
+  group: near_miss
+  q: What is the average bond amount in Melbourne at the moment?
+- qid: M24
+  group: near_miss
+  q: Is there a levy on Airbnb stays in Victoria?
+- qid: F06
+  group: off_topic
+  q: Write me a poem about the ocean.
+- qid: F08
+  group: off_topic
+  q: What's 17 times 23?
+- qid: F10
+  group: off_topic
+  q: How do I bake sourdough bread?
+- qid: F12
+  group: off_topic
+  q: What are the symptoms of the flu?
+- qid: F14
+  group: off_topic
+  q: Is it a good time to buy Bitcoin?
