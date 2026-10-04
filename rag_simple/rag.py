@@ -168,9 +168,10 @@ class RenterRAG:
         return result
 
 
-def load_tuned_threshold():
+def load_tuned_threshold(folder=None):
     """Use the threshold chosen by evaluate.py if it has been run."""
-    summary = Path(__file__).parent / "results" / "summary.json"
+    folder = folder or Path(__file__).parent / "results"
+    summary = Path(folder) / "summary.json"
     if summary.exists():
         return json.loads(summary.read_text())["threshold"]
     return DEFAULT_THRESHOLD

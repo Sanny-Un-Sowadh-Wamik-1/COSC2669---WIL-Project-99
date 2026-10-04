@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  /* chat window: messages scroll, input box stays at the bottom */
+  #messages {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    height: 60vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bubble {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    line-height: 1.45;
+  }
+
+  .user {
+    align-self: flex-end;
+    background: var(--primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .bot {
+    align-self: flex-start;
+    background: var(--primary-light);
+    border-bottom-left-radius: 4px;
+  }
+
+  .bot.dontknow {
+    background: var(--warning);
+    border: 1px solid var(--warning-border);
+  }
+
+  .bot .src {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .bot .src a {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .bot .conf {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  #chat-form {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  #chat-input {
+    flex: 1;
+    font: inherit;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  #chat-input:focus {
+    outline: 2px solid var(--primary);
+    border-color: var(--primary);
+  }
+</style>
+
+<h1>Victorian Renter Rights ChatBot</h1>
+<p class="muted">Ask about renting in Victoria. Answers come only from Consumer Affairs Victoria guidance,
+  with sources. Each message is answered on its own. Not legal advice.</p>
+
+<div id="messages">
+  <div class="bubble bot">Hi! Ask me a question about renting in Victoria, for example about rent increases, bonds,
+    repairs or pets.</div>
+</div>
+
+<form id="chat-form">
+  <input id="chat-input" placeholder="Type your question..." autocomplete="off">
+  <button type="submit">Send</button>
+</form>
+
+<p>{% for e in examples %}<button class="example" type="button" onclick="send(this.textContent)">{{ e }}</button>{%
+  endfor %}</p>
+
+<script>
+  const messages = document.getElementById("messages");
+
+  // add one bubble to the chat window and scroll down to it
+  function addBubble(text, who) {
+    const div = document.createElement("div");
+    div.className = "bubble " + who;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  // send a question to the server (app.py /api/chat) and show the reply
+  async function send(question) {
+    question = question.trim();
+    if (!question) return;
+    addBubble(question, "user");
+    const waiting = addBubble("Thinking...", "bot");
+
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: question })
+    });
+    const data = await response.json();
+
+    // replace "Thinking..." with the real answer
+    waiting.textContent = data.answer;
+    if (!data.answered) waiting.classList.add("dontknow");
+
+    // list the sources under the answer, each linking to the CAV page
+    for (const s of data.sources) {
+      const line = document.createElement("div");
+      line.className = "src";
+      line.innerHTML = "Source: ";
+      const link = document.createElement("a");
+      link.href = s.url;
+      link.target = "_blank";
+      link.textContent = s.id + " – " + s.heading;
+      line.appendChild(link);
+      waiting.appendChild(line);
+    }
+    // show the confidence score so users can see why it answered or said "I don't know"
+    const conf = document.createElement("div");
+    conf.className = "conf";
+    conf.textContent = "Confidence " + data.confidence + " (answers only when it is at least {{ threshold }})";
+    waiting.appendChild(conf);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  document.getElementById("chat-form").addEventListener("submit", (event) => {
+    event.preventDefault();                 // stop the page from reloading
+    const input = document.getElementById("chat-input");
+    send(input.value);
+    input.value = "";
+  });
+</script>
+{% endblock %}

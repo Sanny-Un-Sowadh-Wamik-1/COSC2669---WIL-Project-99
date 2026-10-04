@@ -1,32 +1,213 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Renter Rights Assistant</title>
-<style>
-  body { font-family: system-ui, sans-serif; margin: 0; background: #f5f6f8; color: #1d2330; }
-  nav { background: #1f4e99; padding: 12px 20px; }
-  nav a { color: white; margin-right: 18px; text-decoration: none; font-weight: 600; }
-  main { max-width: 900px; margin: 0 auto; padding: 20px 16px 40px; }
-  .card { background: white; border: 1px solid #dde1e7; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
-  textarea { width: 100%; box-sizing: border-box; height: 60px; font: inherit; padding: 8px; }
-  button { background: #1f4e99; color: white; border: 0; padding: 8px 16px; border-radius: 6px; font: inherit; cursor: pointer; }
-  .example { background: #eef2f8; color: #1d2330; margin: 4px 4px 0 0; font-size: 13px; }
-  .dontknow { background: #fff4e0; border-color: #f0c070; }
-  .muted { color: #5d6675; font-size: 13px; }
-  .source-id { font-family: monospace; color: #1f4e99; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-  .tile { background: white; border: 1px solid #dde1e7; border-radius: 10px; padding: 12px; }
-  .tile .big { font-size: 26px; font-weight: 700; }
-  table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { border-bottom: 1px solid #e3e6eb; padding: 6px; text-align: right; }
-  th:first-child, td:first-child { text-align: left; }
-  img { max-width: 100%; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Victorian Renter Rights Assistant</title>
+  <!-- Fonts from Google Fonts (free):
+     Poppins = headings, menu and buttons (bold and round, so it stands out)
+     Nunito  = normal text (soft and easy to read) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap">
+  <style>
+    /* ===== COLOUR AND FONT SETTINGS: change the whole look here ===== */
+    :root {
+      --primary: #0e5e56;
+      /* deep teal: menu bar, buttons, your chat bubbles */
+      --primary-light: #e3f1ee;
+      /* pale teal: bot bubbles, example buttons */
+      --background: #f4f7f6;
+      /* page background */
+      --card: #ffffff;
+      /* boxes and the chat window */
+      --text: #17211f;
+      /* main text */
+      --muted: #5b6b67;
+      /* small grey text */
+      --border: #d5dfdc;
+      /* thin lines around boxes */
+      --warning: #fdf1d8;
+      /* "I don't know" bubble */
+      --warning-border: #e6b75c;
+      --font: "Nunito", Arial, sans-serif;
+      /* normal text */
+      --heading-font: "Poppins", Arial, sans-serif;
+      /* headings, menu, buttons, big numbers */
+    }
+
+    /* ================================================================= */
+
+    body {
+      font-family: var(--font);
+      font-size: 16px;
+      margin: 0;
+      background: var(--background);
+      color: var(--text);
+    }
+
+    h1,
+    h2,
+    h3,
+    nav a,
+    button,
+    .tile .big,
+    th {
+      font-family: var(--heading-font);
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.01em;
+    }
+
+    h2,
+    h3 {
+      font-weight: 600;
+    }
+
+    nav {
+      background: var(--primary);
+      padding: 14px 20px;
+    }
+
+    nav a {
+      color: white;
+      margin-right: 22px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 17px;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: 0;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .example {
+      background: var(--primary-light);
+      color: var(--text);
+      font-family: var(--font);
+      font-weight: 600;
+      margin: 4px 4px 0 0;
+      font-size: 14px;
+    }
+
+    .dontknow {
+      background: var(--warning);
+      border-color: var(--warning-border);
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .tile {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .tile .big {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 7px 6px;
+      text-align: right;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+    }
+
+    input[type=range] {
+      accent-color: var(--primary);
+    }
+
+    img {
+      max-width: 100%;
+    }
+
+    .run-button {
+      display: inline-block;
+      padding: 8px 14px;
+      margin: 0 6px 6px 0;
+      border-radius: 8px;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      text-decoration: none;
+      font-family: var(--heading-font);
+      font-weight: 600;
+    }
+
+    .run-button.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .run-button .small {
+      font-family: var(--font);
+      font-weight: 400;
+      font-size: 13px;
+    }
+  </style>
 </head>
+
 <body>
-<nav><a href="/">Ask</a><a href="/dashboard">Dashboard</a></nav>
-<main>{% block content %}{% endblock %}</main>
+  <nav><a href="/">Chat</a><a href="/dashboard">Dashboard</a></nav>
+  <main>{% block content %}{% endblock %}</main>
 </body>
+
 </html>

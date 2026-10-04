@@ -39,8 +39,10 @@ Choosing the threshold (the "balance" between answering and refusing):
   one with the highest average score.
 
 Run:
-  python evaluate.py              # offline (extractive answers)
-  python evaluate.py --ollama     # answers written by the local LLM + a "no RAG" comparison
+  python evaluate.py              # offline (extractive answers)        -> results_offline/
+  python evaluate.py --ollama     # answers written by the local LLM     -> results/
+                                  #   + a "no RAG" comparison
+Once both runs exist, it also makes the offline-vs-LLM table and chart (in results/).
 """
 
 import argparse
@@ -55,11 +57,11 @@ import pandas as pd
 import yaml
 from ranx import Qrels, Run, evaluate as ranx_evaluate
 
-from rag import RenterRAG, OLLAMA_URL, OLLAMA_MODEL
+from rag import RenterRAG, OLLAMA_URL, OLLAMA_MODEL, TOP_K
 
 HERE = Path(__file__).parent
-RESULTS = HERE / "results"
-RESULTS.mkdir(exist_ok=True)
+OFFLINE_DIR = HERE / "results_offline"   # python evaluate.py           saves here
+LLM_DIR = HERE / "results"               # python evaluate.py --ollama  saves here
 
 
 # ---------------------------------------------------------------- loading questions
@@ -79,7 +81,7 @@ def load_questions(filename):
 
 # ---------------------------------------------------------------- checking one answer
 
-def check_answer(question, result):
+def check_answer(question, result, rag):
     """Compare the system's result with the known answer for one question."""
     row = {
         "qid": question["qid"], "type": question["cat"], "question": question["q"],
@@ -91,11 +93,19 @@ def check_answer(question, result):
     if question["cat"] == "O":                 # should NOT be answered - nothing to check
         row["correct"] = None
         row["source_correct"] = None
+        row["supported"] = None
         return row
     found = [bool(re.search(fact, result["answer"], re.IGNORECASE)) for fact in question["facts"]]
     row["correct"] = all(found)
     row["facts_found"] = sum(found) / len(found)
     row["source_correct"] = any(s in question["gold"] for s in result["sources"])
+    # Faithfulness ("backed by its sources"): the answer cites at least one passage, AND every key
+    # fact that appears in the answer can also be found in the passages it cited.
+    # So a reader who clicks the source can check the answer for themselves.
+    cited_text = " ".join(rag.by_id[s]["text"] for s in result["sources"])
+    facts_in_answer = [fact for fact, hit in zip(question["facts"], found) if hit]
+    row["supported"] = bool(result["sources"]) and all(
+        re.search(fact, cited_text, re.IGNORECASE) for fact in facts_in_answer)
     return row
 
 
@@ -104,7 +114,7 @@ def run_questions(rag, questions):
     We apply the real threshold afterwards, so we can try many thresholds without
     re-running the system."""
     rag.threshold = 0.0
-    return pd.DataFrame([check_answer(q, rag.answer(q["q"])) for q in questions])
+    return pd.DataFrame([check_answer(q, rag.answer(q["q"]), rag) for q in questions])
 
 
 # ---------------------------------------------------------------- applying a threshold
@@ -147,6 +157,7 @@ def metrics(df):
         "facts_found_on_answered": percent(answered["facts_found"]) if "facts_found" in answered else None,
         "refusal_rate_out_of_kb": percent(~should_refuse["answered"]),
         "source_accuracy": percent(answered["source_correct"].astype(bool)),
+        "supported_by_sources": percent(answered["supported"].astype(bool)),
         "avg_confidence_when_answering": average(df[df["answered"]]["confidence"]),
         "avg_sources_per_answer": average(df[df["answered"]]["n_sources"]),
         "avg_score": round(float(df["score"].mean()), 3),
@@ -174,6 +185,19 @@ def retrieval_scores(rag, questions):
     return {k: round(float(v), 3) for k, v in ranx_evaluate(qrels, run, ["ndcg@3", "recall@3"]).items()}
 
 
+def retrieval_depth(rag, questions):
+    """How often is a correct passage among the top k search results?  (k = 1, 3, 5, 10)
+    This is how we chose to give the generator the top 3 passages: more passages find the
+    answer more often, but also give the generator more text that is not about the question."""
+    answerable = [q for q in questions if q["cat"] != "O"]
+    found = {k: 0 for k in (1, 3, 5, 10)}
+    for q in answerable:
+        ids = [p["id"] for p, _ in rag.retrieve(q["q"], k=10)]
+        for k in found:
+            found[k] += any(i in q["gold"] for i in ids[:k])
+    return {str(k): round(100 * n / len(answerable), 1) for k, n in found.items()}
+
+
 # ---------------------------------------------------------------- fairness
 
 def fairness(df, questions):
@@ -181,7 +205,7 @@ def fairness(df, questions):
     pairs = {q["qid"]: q["pair"] for q in questions if q.get("pair")}
     plain_ids = sorted(set(pairs.values()))
     is_right = (df["answered"] & (df["correct"] == True)).set_axis(df["qid"])   # noqa: E712
-    out = {"plain": percent(is_right[plain_ids])}
+    out = {"plain": percent(is_right[plain_ids]), "questions_per_wording": len(plain_ids)}
     for letter, name in [("L", "legal"), ("C", "colloquial")]:
         ids = [q for q in pairs if q.startswith(letter)]
         out[name] = percent(is_right[ids])
@@ -204,32 +228,131 @@ def closed_book_accuracy(questions):
             timeout=300).json()["message"]["content"]
         total += 1
         right += all(re.search(f, reply, re.IGNORECASE) for f in q["facts"])
-        # old rule: 60 days' notice for rent increases / sale (it is 90 days since Nov 2025)
-        if q["qid"] in ("K01", "K15") and re.search(r"\b60 days\b", reply):
+        # old rule: 60 days' notice (it is 90 days since Nov 2025). We check every question
+        # whose correct answer needs "90 days", and count replies that say "60 days" instead.
+        if any("90 days" in f for f in q["facts"]) and re.search(r"\b60 days\b", reply):
             stale += 1
-    return {"accuracy": round(100 * right / total, 1), "questions": total,
+    return {"accuracy": round(100 * right / total, 1), "correct": right, "questions": total,
             "used_old_60_day_rule": stale}
+
+
+def rag_fully_correct(df):
+    """The same measure as closed_book_accuracy, but WITH RAG, so the two compare fairly:
+    out of all Known + Inferred test questions, how many got a correct answer
+    (saying "I don't know" counts as not correct here)."""
+    ki = df[df["type"].isin(["K", "I"])]
+    right = int((ki["answered"] & (ki["correct"] == True)).sum())   # noqa: E712
+    return {"accuracy": round(100 * right / len(ki), 1), "correct": right, "questions": len(ki)}
 
 
 # ---------------------------------------------------------------- chart
 
-def plot_threshold_curve(curve, chosen, path):
-    curve = curve[curve["threshold"] <= 20]      # above 20 almost nothing is answered
-    fig, ax = plt.subplots(figsize=(7, 3.6))
-    ax.plot(curve["threshold"], curve["answer_rate"], label="Answer rate (answerable questions)")
-    ax.plot(curve["threshold"], curve["accuracy_on_answered"], label="Accuracy on answered")
-    ax.plot(curve["threshold"], curve["refusal_rate_out_of_kb"], label="Refusal rate (should-not-answer)")
-    ax.axvline(chosen, color="grey", linestyle="--")
-    ax.text(chosen + 0.3, 5, f"chosen = {chosen}", color="grey")
-    ax.set_xlabel("Confidence threshold (BM25 score of the best passage)")
-    ax.set_ylabel("%")
-    ax.set_ylim(0, 105)
-    ax.set_title("Tuning the threshold on the dev set")
-    ax.legend(fontsize=8, loc="center right")
+def plot_threshold_curve(dev_df, chosen, path):
+    """A simple line chart: the total score on the dev set at each threshold.
+    Score = +1 right answer, -1 wrong answer, 0 "I don't know",
+            +1 refusing an off-topic question, -1 answering one.
+    The highest point is the threshold we chose."""
+    thresholds = [x / 2 for x in range(0, 41)]            # 0, 0.5, 1 ... 20
+    scores = [int(apply_threshold(dev_df, t)["score"].sum()) for t in thresholds]
+    best = scores[thresholds.index(chosen)]
+
+    fig, ax = plt.subplots(figsize=(7, 3.8))
+    ax.plot(thresholds, scores, color="#9fb7b2", linewidth=2, marker="o", markersize=4)
+    ax.plot([chosen], [best], "o", color="#0e7c70", markersize=11)          # the chosen threshold
+    ax.annotate(f"Best: threshold {chosen:g}, score {best}", (chosen, best),
+                xytext=(0, 12), textcoords="offset points", ha="center",
+                color="#0e7c70", fontsize=10, weight="bold")
+    ax.axhline(0, color="black", linewidth=0.8)
+    ax.set_xlabel("Confidence threshold (higher = stricter, says \"I don't know\" more)")
+    ax.set_ylabel("Total score on the dev set")
+    ax.set_title("Which threshold gives the best score? (+1 right, -1 wrong)")
+    ax.set_ylim(min(scores) - 2, best + 4)                  # room for the label above the best point
+    ax.yaxis.set_major_locator(plt.MaxNLocator(integer=True))   # whole numbers only (scores are counts)
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     plt.close(fig)
+
+
+# ---------------------------------------------------------------- offline vs LLM
+
+# (label shown in the table/chart, where to find the number inside summary.json)
+METRICS = [
+    ("Answer rate %",                     ["test_overall", "answer_rate"]),
+    ("Accuracy on answered %",            ["test_overall", "accuracy_on_answered"]),
+    ("Said \"I don't know\" when it should %", ["test_overall", "refusal_rate_out_of_kb"]),
+    ("Cited a correct source %",          ["test_overall", "source_accuracy"]),
+    ("Answer backed by its sources %",    ["test_overall", "supported_by_sources"]),
+    ("Fully correct (known + inferred) %", ["rag_fully_correct", "accuracy"]),
+    ("Fairness: plain wording %",         ["fairness_accuracy", "plain"]),
+    ("Fairness: legal wording %",         ["fairness_accuracy", "legal"]),
+    ("Fairness: slang wording %",         ["fairness_accuracy", "colloquial"]),
+]
+OTHER = [   # not percentages, so they go in the table only
+    ("Threshold (tuned on dev)",          ["threshold"]),
+    ("Avg sources per answer",            ["test_overall", "avg_sources_per_answer"]),
+    ("Retrieval NDCG@3",                  ["retrieval_test", "ndcg@3"]),
+]
+
+
+def get(summary, path):
+    """Follow a list of keys into the summary, e.g. ["test_overall", "answer_rate"]."""
+    value = summary
+    for key in path:
+        value = value.get(key) if isinstance(value, dict) else None
+    return value
+
+
+def compare_runs():
+    """Offline vs LLM side by side. Runs automatically once BOTH runs exist.
+    Every number is read from the two summary.json files (nothing typed in by hand)."""
+    offline_file, llm_file = OFFLINE_DIR / "summary.json", LLM_DIR / "summary.json"
+    if not (offline_file.exists() and llm_file.exists()):
+        return   # only one run so far - nothing to compare yet
+    offline = json.loads(offline_file.read_text())
+    llm = json.loads(llm_file.read_text())
+
+    # ---- table
+    lines = [f"| Metric | Offline ({offline['generator']}) | LLM with RAG ({llm['generator']}) |",
+             "|---|---|---|"]
+    for label, path in METRICS + OTHER:
+        lines.append(f"| {label} | {get(offline, path)} | {get(llm, path)} |")
+    if "no_rag_llm" in llm:
+        n = llm["no_rag_llm"]
+        r = llm["rag_fully_correct"]
+        lines.append("")
+        lines.append(f"RAG vs no RAG (same LLM, known + inferred questions): with RAG {r['correct']} of "
+                     f"{r['questions']} fully correct ({r['accuracy']}%), without RAG {n['correct']} of "
+                     f"{n['questions']} ({n['accuracy']}%). Without RAG it gave the old 60-day rule "
+                     f"{n['used_old_60_day_rule']} time(s).")
+    table = "\n".join(lines)
+    (LLM_DIR / "comparison_table.md").write_text(table + "\n")
+    print("\n" + table)
+
+    # ---- chart: two bars per metric (offline, LLM)
+    labels = [label.replace(" %", "") for label, _ in METRICS]
+    off_values = [get(offline, p) or 0 for _, p in METRICS]
+    llm_values = [get(llm, p) or 0 for _, p in METRICS]
+    y = range(len(labels))
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.barh([i - 0.2 for i in y], off_values, height=0.38, color="#9fb7b2", label="Offline (copied sentences)")
+    ax.barh([i + 0.2 for i in y], llm_values, height=0.38, color="#0e7c70", label="LLM with RAG")
+    for i in y:   # write the number at the end of each bar
+        ax.text(off_values[i] + 1, i - 0.2, f"{off_values[i]:g}", va="center", fontsize=8)
+        ax.text(llm_values[i] + 1, i + 0.2, f"{llm_values[i]:g}", va="center", fontsize=8)
+    ax.set_yticks(list(y))
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()                      # first metric at the top
+    ax.set_xlim(0, 110)
+    ax.set_xlabel("% of test questions")
+    ax.set_title("Offline vs LLM on the same test questions")
+    ax.legend(loc="lower right", fontsize=8)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(LLM_DIR / "comparison_chart.png", dpi=160)
+    plt.close(fig)
+    print("\nSaved results/comparison_table.md and results/comparison_chart.png")
+
 
 
 # ---------------------------------------------------------------- main
@@ -239,6 +362,8 @@ def main():
     parser.add_argument("--ollama", action="store_true", help="use the local LLM to write answers")
     args = parser.parse_args()
 
+    RESULTS = LLM_DIR if args.ollama else OFFLINE_DIR
+    RESULTS.mkdir(exist_ok=True)
     rag = RenterRAG(use_ollama=args.ollama)
     dev = load_questions("dev_questions.yaml")
     test = load_questions("test_questions.yaml")
@@ -247,7 +372,7 @@ def main():
     dev_df = run_questions(rag, dev)
     threshold, curve = choose_threshold(dev_df)
     curve.to_csv(RESULTS / "threshold_curve_dev.csv", index=False)
-    plot_threshold_curve(curve, threshold, RESULTS / "threshold_curve_dev.png")
+    plot_threshold_curve(dev_df, threshold, RESULTS / "threshold_curve_dev.png")
 
     # 2. report on the TEST questions with that threshold fixed
     test_df = apply_threshold(run_questions(rag, test), threshold)
@@ -260,7 +385,10 @@ def main():
         "test_overall": metrics(test_df),
         "test_by_type": by_type,
         "retrieval_test": retrieval_scores(rag, test),
+        "retrieval_depth": retrieval_depth(rag, test),
+        "top_k_used": TOP_K,
         "fairness_accuracy": fairness(test_df, test),
+        "rag_fully_correct": rag_fully_correct(test_df),
         "test_curve": [{"threshold": t, **metrics(apply_threshold(test_df, t))}
                        for t in [x / 2 for x in range(0, 51)]],
     }
@@ -277,10 +405,16 @@ def main():
           f"refused should-not-answer {o['refusal_rate_out_of_kb']}%")
     print(f"Source accuracy {o['source_accuracy']}%  |  avg confidence {o['avg_confidence_when_answering']}"
           f"  |  avg sources {o['avg_sources_per_answer']}")
+    print(f"Answer backed by its sources {o['supported_by_sources']}%  |  "
+          f"correct passage in top 1/3/5/10: {summary['retrieval_depth']}")
     print(f"Retrieval: {summary['retrieval_test']}   Fairness (accuracy %): {summary['fairness_accuracy']}")
     if args.ollama:
         print(f"LLM without RAG: {summary['no_rag_llm']}")
-    print(f"\nSaved results/ summary.json, test_results_per_question.csv, threshold_curve_dev.png")
+    print(f"With RAG (same measure): {summary['rag_fully_correct']}")
+    print(f"\nSaved {RESULTS.name}/ summary.json, test_results_per_question.csv, threshold_curve_dev.png")
+
+    # 4. if both runs exist now, put them side by side
+    compare_runs()
 
 
 if __name__ == "__main__":

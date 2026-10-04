@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>How well does it work?</h1>
+
+<!-- switch between the offline run and the LLM run -->
+<p>{% for name, generator in runs.items() %}
+  <a href="{{ url_for('dashboard', run=name) }}" class="run-button {{ 'active' if name == run }}">
+    {{ "Offline run" if name == "offline" else "LLM run" }} <span class="small">({{ generator }})</span></a>
+{% endfor %}</p>
 <p class="muted">Test set: {{ s.test_overall.questions }} questions the system never saw during tuning.
 Generator: {{ s.generator }}. Threshold tuned on the dev set: <strong>{{ s.threshold }}</strong>.</p>
 
@@ -10,6 +16,7 @@ Generator: {{ s.generator }}. Threshold tuned on the dev set: <strong>{{ s.thres
   <div class="tile"><div class="muted">Accuracy on answered</div><div class="big" id="accuracy_on_answered"></div></div>
   <div class="tile"><div class="muted">Said "I don't know" when it should</div><div class="big" id="refusal_rate_out_of_kb"></div></div>
   <div class="tile"><div class="muted">Cited a correct source</div><div class="big" id="source_accuracy"></div></div>
+  <div class="tile"><div class="muted">Answer backed by its sources</div><div class="big" id="supported_by_sources"></div></div>
   <div class="tile"><div class="muted">Avg confidence when answering</div><div class="big" id="avg_confidence_when_answering"></div></div>
   <div class="tile"><div class="muted">Avg sources per answer</div><div class="big" id="avg_sources_per_answer"></div></div>
 </div>
@@ -23,7 +30,9 @@ Generator: {{ s.generator }}. Threshold tuned on the dev set: <strong>{{ s.thres
 
 <div class="card">
   <h3>How the threshold was chosen (dev set)</h3>
-  <img src="{{ url_for('static', filename='threshold_curve_dev.png') }}" alt="Answer rate, accuracy and refusal rate against the threshold">
+  <p class="muted">We tried every threshold from 0 to 25 on the dev questions and kept the one with the highest score.
+  If two thresholds tie, we keep the lower one, because it answers more questions.</p>
+  <img src="{{ url_for('result_file', run=run, filename='threshold_curve_dev.png') }}" alt="Answer rate, accuracy and refusal rate against the threshold">
 </div>
 
 <div class="card">
@@ -44,18 +53,45 @@ Generator: {{ s.generator }}. Threshold tuned on the dev set: <strong>{{ s.thres
   <h3>Search quality and fairness</h3>
   <p>Retrieval NDCG@3: <strong>{{ s.retrieval_test["ndcg@3"] }}</strong> · Recall@3: <strong>{{ s.retrieval_test["recall@3"] }}</strong>
     <span class="muted">(same metric as Walert)</span></p>
-  <p>Accuracy on the same 12 questions asked three ways: plain {{ s.fairness_accuracy.plain }}% ·
-     legal {{ s.fairness_accuracy.legal }}% · slang {{ s.fairness_accuracy.colloquial }}%</p>
+  <p>Accuracy on the same {{ s.fairness_accuracy.questions_per_wording }} questions asked three ways:
+     plain {{ s.fairness_accuracy.plain }}% · legal {{ s.fairness_accuracy.legal }}% · slang {{ s.fairness_accuracy.colloquial }}%</p>
+</div>
+
+<div class="card">
+  <h3>How many passages to give the generator?</h3>
+  <p class="muted">How often a correct passage is in the top results of the search (answerable test questions).
+  We use the top {{ s.top_k_used }}.</p>
+  <table>
+    <tr>{% for k in s.retrieval_depth %}<th>Top {{ k }}</th>{% endfor %}</tr>
+    <tr>{% for k, v in s.retrieval_depth.items() %}<td>{{ v }}%</td>{% endfor %}</tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>What RAG adds</h3>
+  <p>Known + inferred test questions answered fully correctly <strong>with RAG</strong>:
+     {{ s.rag_fully_correct.correct }} of {{ s.rag_fully_correct.questions }} ({{ s.rag_fully_correct.accuracy }}%)</p>
   {% if s.no_rag_llm %}
-  <p>Same LLM without RAG: accuracy {{ s.no_rag_llm.accuracy }}%, and it used the old 60-day rule
-     {{ s.no_rag_llm.used_old_60_day_rule }} time(s).</p>
+  <p>Same LLM <strong>without RAG</strong>: {{ s.no_rag_llm.correct }} of {{ s.no_rag_llm.questions }}
+     ({{ s.no_rag_llm.accuracy }}%). It gave the old 60-day rule {{ s.no_rag_llm.used_old_60_day_rule }} time(s), and it can never show a source.</p>
+  {% elif "llm" in runs %}
+  <p class="muted">The "same LLM without RAG" comparison needs the LLM, so it is shown on the <a href="{{ url_for('dashboard', run='llm') }}">LLM run</a> tab.</p>
+  {% else %}
+  <p class="muted">Run <code>python evaluate.py --ollama</code> to also see the same LLM without RAG.</p>
   {% endif %}
 </div>
+
+{% if has_comparison %}
+<div class="card">
+  <h3>Offline vs LLM, side by side</h3>
+  <img src="{{ url_for('result_file', run='llm', filename='comparison_chart.png') }}" alt="Offline and LLM results side by side">
+</div>
+{% endif %}
 
 <script>
   // test_curve holds the metrics for every threshold (computed in evaluate.py)
   const curve = {{ curve_json | safe }};
-  const keys = ["answer_rate", "accuracy_on_answered", "refusal_rate_out_of_kb", "source_accuracy",
+  const keys = ["answer_rate", "accuracy_on_answered", "refusal_rate_out_of_kb", "source_accuracy", "supported_by_sources",
                 "avg_confidence_when_answering", "avg_sources_per_answer"];
   function show(t) {
     const row = curve.find(r => r.threshold === t);
